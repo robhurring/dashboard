@@ -140,10 +140,10 @@ Modules, themes and widgets are found in folders, and the repo's own are just th
 | `DEFAULT_THEME` | `home` | the theme that opens without `?theme=` |
 
 They're searched like `$PATH`: the first folder with a name wins, so a module in
-`local/modules/weather` replaces the stock one. `local/` is
-gitignored: clone a private repo there (or set `LOCAL_REPO` and `bin/setup` will), and your own
-modules, layout and `application.lua` stay private while `bin/deploy` still ships them. The details
-are in [docs/extending.md](docs/extending.md).
+`local/modules/weather` replaces the stock one. `local/` is gitignored: `bin/setup` starts it from
+`local.example/`, or clones your private repo there when `LOCAL_REPO` is set. Your own modules,
+layout and `application.lua` stay private while `bin/deploy` still ships them. The details are in
+[docs/extending.md](docs/extending.md).
 
 ## Docs
 

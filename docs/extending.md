@@ -18,7 +18,8 @@ local/
   tests/*.rs             optional: Rust tests for your modules, run by bin/test
 ```
 
-Make it a git repo of its own and push it somewhere private:
+`bin/setup` creates it from `local.example/`, a starter copy with a README and an example
+`application.lua`. Make it a git repo of its own and push it somewhere private:
 
 ```sh
 mkdir -p local/modules local/themes local/widgets

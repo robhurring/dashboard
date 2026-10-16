@@ -16,3 +16,18 @@ fn modules_dir_is_a_colon_separated_list_searched_in_order() {
     let c = config(&[("MODULES_DIR", "/app/modules: /srv/mine/modules ::")]);
     assert_eq!(c.modules_dirs, vec![PathBuf::from("/app/modules"), PathBuf::from("/srv/mine/modules")]);
 }
+
+#[test]
+fn local_application_lua_replaces_the_repos_when_it_exists() {
+    let dir = tempfile::tempdir().unwrap();
+    assert_eq!(dashboard::config::default_application_file(dir.path()), dir.path().join("application.lua"));
+    std::fs::create_dir_all(dir.path().join("local")).unwrap();
+    std::fs::write(dir.path().join("local/application.lua"), "return {}").unwrap();
+    assert_eq!(dashboard::config::default_application_file(dir.path()), dir.path().join("local/application.lua"));
+}
+
+#[tokio::test]
+async fn the_starter_application_lua_in_local_example_loads() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../local.example/application.lua");
+    dashboard::dashboard::load(&path).await.unwrap();
+}

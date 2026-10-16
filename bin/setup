@@ -15,9 +15,17 @@ need docker "install Docker Desktop"
 cargo fetch
 (cd web && npm install)
 [[ -f .env ]] || { cp .env.example .env; echo "created .env from .env.example; add your API keys"; }
-# Private extensions: clone LOCAL_REPO into local/ the first time (see docs/extending.md).
+# Private extensions: clone LOCAL_REPO into local/ the first time, else start it from local.example/
+# (see docs/extending.md).
 local_repo="${LOCAL_REPO:-$(grep -E '^LOCAL_REPO=' .env 2>/dev/null | tail -1 | cut -d= -f2- || true)}"
-if [[ -n "$local_repo" && ! -e local ]]; then git clone "$local_repo" local; fi
+if [[ ! -e local ]]; then
+  if [[ -n "$local_repo" ]]; then
+    git clone "$local_repo" local
+  else
+    cp -R local.example local
+    echo "created local/ from local.example/ for your own modules and themes; see local/README.md"
+  fi
+fi
 if [[ -f docker-compose.yml ]]; then docker compose up -d redis; fi
 # Development tools, installed with cargo so no other package manager is needed:
 #   ultraman   Procfile runner used by bin/dev for colored per-process logs

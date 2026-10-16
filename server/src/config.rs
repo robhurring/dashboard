@@ -44,8 +44,8 @@ impl Config {
             widgets_dirs: path_list(&var("WIDGETS_DIR").unwrap_or_else(|| "local/widgets".into())),
             // A private overlay's application.lua, when there is one, replaces the repo's.
             application_file: var("APPLICATION_FILE")
-                .unwrap_or_else(|| if std::path::Path::new("local/application.lua").is_file() { "local/application.lua".into() } else { "application.lua".into() })
-                .into(),
+                .map(PathBuf::from)
+                .unwrap_or_else(|| default_application_file(std::path::Path::new(""))),
             redis_url: var("REDIS_URL"),
             redis_prefix: var("REDIS_PREFIX").unwrap_or_else(|| "dashboard:".into()),
             watch_files: var("DASHBOARD_WATCH").is_some_and(|v| v == "1"),
@@ -57,4 +57,10 @@ impl Config {
 /// "a:b: c::" -> [a, b, c]
 pub fn path_list(value: &str) -> Vec<PathBuf> {
     value.split(':').map(str::trim).filter(|p| !p.is_empty()).map(PathBuf::from).collect()
+}
+
+/// `local/application.lua` under `root` when it exists, else the repo's `application.lua`.
+pub fn default_application_file(root: &std::path::Path) -> PathBuf {
+    let local = root.join("local/application.lua");
+    if local.is_file() { local } else { root.join("application.lua") }
 }
