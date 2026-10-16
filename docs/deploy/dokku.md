@@ -48,8 +48,7 @@ ssh dokku@dokku.example.com config:set dashboard-next TZ=America/New_York DEFAUL
 | `HOOKS_TOKEN` | the token callers send to hooks with `auth = { token = "HOOKS_TOKEN" }`; unset means open, for local development only |
 | `OPENWEATHERMAP_API_KEY` | weather |
 | `FINNHUB_API_KEY` | stocks |
-| `GOOGLE_CALENDAR_ICS_URL` | calendar: one or more ICS URLs, comma-separated |
-| `CALENDAR_<NAME>` | calendar panels with `feeds="<name>"` |
+| `CALENDAR_<NAME>` | calendar panels with `feeds="<name>"`: one or more ICS URLs, comma-separated |
 
 Modules from `local/` bring their own variables; set them the same way. Pass values with special
 characters quoted for the remote shell, for example `config:set app KEY=$(printf %q "$VALUE")`.

@@ -43,14 +43,14 @@ async fn calendar_module_fetches_and_renders() {
     let base = stub().await;
     // SAFETY: this binary runs a single test; nothing else reads the environment concurrently.
     unsafe {
-        std::env::set_var("GOOGLE_CALENDAR_ICS_URL", format!(" {base}/cal.ics , {base}/cal.ics, {base}/gone.ics"));
+        std::env::set_var("CALENDAR_HOME", format!(" {base}/cal.ics , {base}/cal.ics, {base}/gone.ics"));
         std::env::set_var("CALENDAR_WORK", format!("{base}/work.ics"));
         std::env::set_var("CALENDAR_ONCALL", format!("{base}/cal.ics"));
     }
 
     // Two good feeds (with sloppy spacing) and one that 404s, three days: the daily event appears 3 times per good feed,
     // and the dead feed is counted, not fatal.
-    let (state, view) = fetch("calendar", json!({ "days": 3 })).await;
+    let (state, view) = fetch("calendar", json!({ "days": 3, "feeds": "home" })).await;
     assert!(view.is_none(), "calendar is a custom component");
     assert_eq!(state["days"], 3);
     assert_eq!(state["failed"], 1);
@@ -81,4 +81,11 @@ async fn a_calendar_feed_name_only_reaches_calendar_variables() {
         InstanceEvent::FetchFinished { outcome, .. } => assert!(matches!(outcome, FetchOutcome::Failed(ref e) if e.contains("feed names")), "{outcome:?}"),
         other => panic!("{other:?}"),
     }
+}
+
+#[tokio::test]
+async fn a_calendar_panel_must_name_its_feeds() {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/calendar/module.lua");
+    let def = ModuleDef::load(&path).await.unwrap();
+    assert_eq!(def.required, vec!["feeds"]);
 }

@@ -16,7 +16,7 @@ export default function Home() {
           </Row>
           <Row>
             <Slot module="stocks" title="Markets" />
-            <Slot module="calendar" days={3} chrome="full" size={2} />
+            <Slot module="calendar" feeds="home" days={3} chrome="full" size={2} />
           </Row>
         </Column>
       </Page>

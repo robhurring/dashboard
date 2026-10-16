@@ -86,7 +86,7 @@ function snapshots(echo: EchoState = { messages: [], pings: 0 }): Record<string,
     },
     calendar: {
       info: { module: "calendar", kind: "state", component: "Calendar", title: "Calendar", icon: "calendar", push_only: false },
-      config: { days: 3, past: "dim" },
+      config: { days: 3, past: "dim", feeds: "home" },
       state: {
         days: 3, from: ymd(now), failed: 0, fetched_at: secs(now),
         events: [
