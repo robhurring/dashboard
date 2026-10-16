@@ -165,3 +165,7 @@ are in [docs/extending.md](docs/extending.md).
 | `bin/pi` | sets up and updates the kiosk Pi over ssh |
 
 `?theme=<name>` picks a theme and `?debug=1` logs every websocket message to the console.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
