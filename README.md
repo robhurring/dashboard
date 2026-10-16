@@ -79,8 +79,9 @@ return {
 }
 ```
 
-Modules run sandboxed in Luau, with only the host functions they're given: HTTP, the clock,
-env vars, iCalendar parsing and a few system stats. Saving a module reloads it without restarting
+Modules run sandboxed in Luau, with only the host functions they're given: HTTP, time and
+time zones, env vars and a few system stats. Anything specific to one service, like parsing a
+calendar feed, lives in that module's own folder. Saving a module reloads it without restarting
 anything.
 
 **Themes** are React files that lay out pages. A `<Slot>` places a module, and any extra props

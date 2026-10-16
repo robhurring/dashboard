@@ -28,6 +28,26 @@ fn host_tz() -> chrono_tz::Tz {
     std::env::var("TZ").ok().and_then(|z| z.parse().ok()).unwrap_or(chrono_tz::UTC)
 }
 
+/// `wall` ("YYYY-MM-DDTHH:MM:SS") read in `zone` (host zone when None), as epoch seconds and RFC 3339 in the host zone.
+/// A time skipped by a daylight-saving jump lands just after the gap, as calendar apps do.
+pub fn instant(wall: &str, zone: Option<&str>) -> Result<(i64, String), String> {
+    use chrono::TimeZone;
+    let naive = chrono::NaiveDateTime::parse_from_str(wall, "%Y-%m-%dT%H:%M:%S")
+        .map_err(|_| format!("instant: expected YYYY-MM-DDTHH:MM:SS, got {wall:?}"))?;
+    let host = host_tz();
+    let tz: chrono_tz::Tz = match zone {
+        None => host,
+        Some(z) => z.parse().map_err(|_| format!("instant: unknown time zone {z:?}"))?,
+    };
+    let at = tz
+        .from_local_datetime(&naive)
+        .earliest()
+        .or_else(|| tz.from_local_datetime(&(naive + chrono::Duration::hours(1))).earliest())
+        .ok_or_else(|| format!("instant: {wall} does not exist in {}", tz.name()))?;
+    let local = at.with_timezone(&host);
+    Ok((at.timestamp(), local.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)))
+}
+
 /// A URL safe to show on screens: no query string or fragment, which is where API keys live.
 pub fn redact_url(url: &str) -> String {
     url.split(['?', '#']).next().unwrap_or(url).to_string()
@@ -47,27 +67,18 @@ pub fn build_ctx(lua: &Lua, cc: &CallContext) -> mlua::Result<Table> {
         })?,
     )?;
 
-    // Calendars: `ctx.ical.events(ics_text, { from = "YYYY-MM-DD", to = "YYYY-MM-DD" })`, recurrences expanded, host zone.
-    let ical = lua.create_table()?;
-    ical.set(
-        "events",
-        lua.create_function(|lua, (text, opts): (String, Table)| {
-            let day = |key: &str| -> mlua::Result<chrono::NaiveDate> {
-                let s: String = opts.get(key)?;
-                chrono::NaiveDate::parse_from_str(&s, "%Y-%m-%d").map_err(|_| mlua::Error::runtime(format!("ical.events: `{key}` must be YYYY-MM-DD, got {s:?}")))
-            };
-            let tz = host_tz();
-            let from = match opts.get::<Option<String>>("from")? { Some(_) => day("from")?, None => chrono::Utc::now().with_timezone(&tz).date_naive() };
-            let to = match opts.get::<Option<u32>>("days")? {
-                Some(days) => from + chrono::Duration::days(i64::from(days)),
-                None => day("to")?,
-            };
-            let events = crate::ical::events(&text, from, to, tz).map_err(mlua::Error::runtime)?;
-            let json = serde_json::to_value(events).map_err(mlua::Error::external)?;
-            to_lua(lua, &json)
+    // Time zones are the one part of date handling Lua cannot do. `ctx.instant(wall, zone)`: the moment that wall-clock
+    // time names in an IANA zone ("UTC", or nil for the host zone), as epoch seconds and RFC 3339 in the host zone.
+    ctx.set(
+        "instant",
+        lua.create_function(|lua, (wall, zone): (String, Option<String>)| {
+            let (epoch, iso) = instant(&wall, zone.as_deref()).map_err(mlua::Error::runtime)?;
+            let t = lua.create_table()?;
+            t.set("epoch", epoch)?;
+            t.set("iso", iso)?;
+            Ok(t)
         })?,
     )?;
-    ctx.set("ical", ical)?;
 
     ctx.set("now", lua.create_function(|_, ()| Ok(chrono::Utc::now().timestamp()))?)?;
     // Today's calendar date in the host zone (`TZ`, default UTC): modules compare due dates against it.

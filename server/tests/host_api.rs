@@ -100,19 +100,25 @@ async fn today_is_a_calendar_date_in_the_host_zone() {
 }
 
 #[tokio::test]
-async fn ical_events_expand_a_calendar_for_a_date_window() {
+async fn instant_turns_a_wall_clock_time_in_a_zone_into_epoch_and_host_time() {
     let vm = Vm::new().unwrap();
     let cc = context();
-    let ics = "BEGIN:VCALENDAR\r\nX-WR-CALNAME:Home\r\nBEGIN:VEVENT\r\nUID:1\r\nDTSTART:20261015T130000Z\r\nDTEND:20261015T140000Z\r\nSUMMARY:Dentist\r\nRRULE:FREQ=DAILY;COUNT=3\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n";
-    let src = format!(r#"local ctx = ... return ctx.ical.events({ics:?}, {{ from = "2026-10-15", to = "2026-10-17" }})"#);
-    let v = run(&vm, &cc, &src).await.unwrap().unwrap();
-    let titles: Vec<&str> = v.as_array().unwrap().iter().map(|e| e["title"].as_str().unwrap()).collect();
-    assert_eq!(titles, vec!["Dentist", "Dentist"]);
-    assert_eq!(v[0]["calendar"], "Home");
-    assert_eq!(v[0]["all_day"], false);
-    assert!(v[0]["start"].as_str().unwrap().starts_with("2026-10-15T"), "{}", v[0]["start"]);
-    let err = run(&vm, &cc, r#"local ctx = ... return ctx.ical.events("nope", { from = "2026-10-15", to = "2026-10-16" })"#).await.unwrap_err();
-    assert!(err.contains("iCalendar"), "{err}");
+    // 09:30 in Los Angeles on a PDT date is 16:30 UTC.
+    let v = run(&vm, &cc, r#"local ctx = ... return ctx.instant("2026-10-16T09:30:00", "America/Los_Angeles")"#).await.unwrap().unwrap();
+    assert_eq!(v["epoch"], 1792168200);
+    assert!(v["iso"].as_str().unwrap().len() == 25, "{}", v["iso"]);
+    let utc = run(&vm, &cc, r#"local ctx = ... return ctx.instant("2026-10-16T16:30:00", "UTC")"#).await.unwrap().unwrap();
+    assert_eq!(utc["epoch"], 1792168200);
+    // Across the DST change the offset follows the zone: 09:30 in LA in December is 17:30 UTC.
+    let winter = run(&vm, &cc, r#"local ctx = ... return ctx.instant("2026-12-16T09:30:00", "America/Los_Angeles").epoch"#).await.unwrap().unwrap();
+    assert_eq!(winter, 1797442200);
+    // A time that does not exist (spring forward) lands just after the gap instead of failing.
+    let gap = run(&vm, &cc, r#"local ctx = ... return ctx.instant("2026-03-08T02:30:00", "America/New_York").epoch"#).await.unwrap().unwrap();
+    assert_eq!(gap, 1772955000);
+    let err = run(&vm, &cc, r#"local ctx = ... return ctx.instant("2026-10-16T09:30:00", "Mars/Olympus")"#).await.unwrap_err();
+    assert!(err.contains("unknown time zone"), "{err}");
+    let err = run(&vm, &cc, r#"local ctx = ... return ctx.instant("yesterday", "UTC")"#).await.unwrap_err();
+    assert!(err.contains("YYYY-MM-DDTHH:MM:SS"), "{err}");
 }
 
 #[test]

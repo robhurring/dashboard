@@ -91,3 +91,47 @@ async fn load_all_keeps_broken_modules_as_errors() {
     assert!(all["good"].is_ok());
     assert!(all["bad"].as_ref().unwrap_err().contains("must match its folder"));
 }
+
+#[tokio::test]
+async fn a_module_can_require_its_own_sibling_files() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = module(&dir, "cal", r#"
+        local ics = require("ics")
+        local again = require("ics")
+        return {
+          name = "cal", every = "1h",
+          fetch = function(ctx) return { n = ics.double(21), same = ics == again, nested = ics.nested() } end,
+          view = function(state) return ui.stat { value = tostring(state.n) } end,
+        }
+    "#);
+    std::fs::write(dir.path().join("cal/ics.lua"), r#"local util = require("util") return { double = function(x) return x * 2 end, nested = function() return util.name end }"#).unwrap();
+    std::fs::write(dir.path().join("cal/util.lua"), r#"return { name = "util" }"#).unwrap();
+    let def = ModuleDef::load(&path).await.unwrap();
+    assert_eq!(def.libs.keys().cloned().collect::<Vec<_>>(), vec!["ics", "util"]);
+
+    // The instance VM gets the same files: fetch runs code from both.
+    let hub = dashboard::hub::Hub::new(dashboard::persist::Persist::memory()).await.unwrap();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let services = dashboard::instance::HostServices { sys: dashboard::sysstats::Sampler::start(), persist: dashboard::persist::Persist::memory() };
+    let h = dashboard::instance::spawn(
+        dashboard::instance::InstanceSpec { id: "cal".into(), def: Ok(std::sync::Arc::new(def)), config: json!({}) },
+        hub.clone(), reqwest::Client::new(), dashboard::instance::Limits::default(), services, tx,
+    );
+    h.request_fetch();
+    let ev = tokio::time::timeout(Duration::from_secs(5), rx.recv()).await.unwrap().unwrap();
+    assert!(matches!(ev, dashboard::instance::InstanceEvent::FetchFinished { outcome: dashboard::instance::FetchOutcome::Updated, .. }), "{ev:?}");
+    assert_eq!(hub.get("cal").await.unwrap().state, json!({ "n": 42, "same": true, "nested": "util" }));
+}
+
+#[tokio::test]
+async fn require_only_reaches_files_in_the_module_folder() {
+    let dir = tempfile::tempdir().unwrap();
+    for (name, src, expected) in [
+        ("m1", r#"require("missing") return { name = "m1" }"#, "no file missing.lua"),
+        ("m2", r#"require("../m1/module") return { name = "m2" }"#, "plain file name"),
+        ("m3", r#"require("module") return { name = "m3" }"#, "no file module.lua"),
+    ] {
+        let err = ModuleDef::load(&module(&dir, name, src)).await.unwrap_err();
+        assert!(err.contains(expected), "{name}: {err}");
+    }
+}

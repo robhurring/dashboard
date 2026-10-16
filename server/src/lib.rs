@@ -12,7 +12,6 @@ pub mod hub;
 pub mod hook_routes;
 pub mod hooks;
 pub mod host_api;
-pub mod ical;
 pub mod instance;
 pub mod supervisor;
 pub mod ws;

@@ -157,7 +157,7 @@ pub async fn start(
 
 fn same_def(a: &Result<Arc<ModuleDef>, String>, b: &Result<Arc<ModuleDef>, String>) -> bool {
     match (a, b) {
-        (Ok(x), Ok(y)) => x.source == y.source && x.path == y.path,
+        (Ok(x), Ok(y)) => x.source == y.source && x.path == y.path && x.libs == y.libs,
         (Err(x), Err(y)) => x == y,
         _ => false,
     }

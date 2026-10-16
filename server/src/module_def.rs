@@ -16,6 +16,8 @@ pub struct ModuleDef {
     pub name: String,
     pub path: PathBuf,
     pub source: Arc<str>,
+    /// The folder's other `.lua` files, loadable with `require`.
+    pub libs: crate::lua_vm::Libs,
     pub schedule: Option<Schedule>,
     pub stale_after: Duration,
     pub config: Value,
@@ -52,19 +54,16 @@ impl ModuleDef {
             .and_then(|n| n.to_str())
             .unwrap_or_default()
             .to_string();
+        let libs = read_libs(path).await.map_err(|e| format!("{shown}: {e}"))?;
         let vm = Vm::new().map_err(|e| e.to_string())?;
-        let chunk = vm.lua.load(&*source).set_name(shown.clone());
-        let value: LuaValue = vm
-            .run(Duration::from_secs(1), chunk.eval_async())
-            .await
-            .map_err(|e| format!("{shown}: {e}"))?;
+        let value: LuaValue = crate::lua_vm::eval_module(&vm, path, &source, &libs).await.map_err(|e| format!("{shown}: {e}"))?;
         let LuaValue::Table(t) = value else {
             return Err(format!("{shown}: module must return a table"));
         };
-        Self::from_table(&vm, &t, folder, path.to_path_buf(), source).map_err(|e| format!("{shown}: {e}"))
+        Self::from_table(&vm, &t, folder, path.to_path_buf(), source, libs).map_err(|e| format!("{shown}: {e}"))
     }
 
-    fn from_table(vm: &Vm, t: &Table, folder: String, path: PathBuf, source: Arc<str>) -> Result<Self, String> {
+    fn from_table(vm: &Vm, t: &Table, folder: String, path: PathBuf, source: Arc<str>, libs: crate::lua_vm::Libs) -> Result<Self, String> {
         let get_str = |k: &str| -> Result<Option<String>, String> {
             t.get::<Option<String>>(k).map_err(|_| format!("`{k}` must be a string"))
         };
@@ -156,8 +155,25 @@ impl ModuleDef {
             }
             _ => return Err("`hooks` must be a table".into()),
         };
-        Ok(Self { name, path, source, schedule, stale_after, config, required, has_fetch, has_view, component, commands, title, icon, hooks })
+        Ok(Self { name, path, source, libs, schedule, stale_after, config, required, has_fetch, has_view, component, commands, title, icon, hooks })
     }
+}
+
+/// Every other `.lua` file next to `module.lua`, keyed by name without the extension.
+async fn read_libs(module_path: &Path) -> Result<crate::lua_vm::Libs, String> {
+    let mut libs = BTreeMap::new();
+    let Some(dir) = module_path.parent() else { return Ok(Arc::new(libs)) };
+    let mut entries = tokio::fs::read_dir(dir).await.map_err(|e| e.to_string())?;
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let p = entry.path();
+        let (Some(stem), Some("lua")) = (p.file_stem().and_then(|s| s.to_str()), p.extension().and_then(|e| e.to_str())) else { continue };
+        if stem == "module" || !p.is_file() {
+            continue;
+        }
+        let src = tokio::fs::read_to_string(&p).await.map_err(|e| format!("{}: {e}", p.display()))?;
+        libs.insert(stem.to_string(), Arc::from(src));
+    }
+    Ok(Arc::new(libs))
 }
 
 /// Loads every `<dir>/<name>/module.lua`. Broken modules are kept as errors keyed by folder name.

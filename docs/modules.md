@@ -44,13 +44,20 @@ What `ctx` offers:
 | `ctx.http.get(url, opts)`, `ctx.http.post(url, opts)` | `opts`: `query`, `headers`, `json`, `body`, `timeout`; returns decoded JSON, or text |
 | `ctx.env(name)` | an environment variable, for API keys; raises if unset |
 | `ctx.now()`, `ctx.today()` | unix seconds, and `YYYY-MM-DD` in the host zone |
-| `ctx.ical.events(ics, { days = 3 })` | iCalendar text to events, recurrences expanded |
+| `ctx.instant(wall, zone)` | a wall-clock time in an IANA zone as `{ epoch, iso }`; the one piece of date handling Lua can't do |
 | `ctx.sys.stats()`, `ctx.redis.info()` | host CPU, memory, load and uptime; Redis usage |
 | `ctx.refresh()` | run `fetch` again right after this returns |
 | `ctx.log(level, msg)` | to the server log |
 
 Keep upstream URLs in the module and secrets in the environment. Config can be set by any screen,
 so it should never decide where requests go or carry a key.
+
+## More than one file
+
+A module can split its code into other `.lua` files in its own folder and load them with
+`require("name")`. Each file loads once per instance, and only files in the module's folder are
+reachable, so a module stays a folder you can copy anywhere. The calendar module keeps its
+iCalendar parser in `modules/calendar/ics.lua` this way.
 
 ## Drawing with widgets
 

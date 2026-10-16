@@ -1,4 +1,7 @@
 -- Upcoming events from one or more iCalendar feeds (GOOGLE_CALENDAR_ICS_URL, comma-separated).
+-- Parsing and recurrence expansion live in ics.lua, next to this file.
+local ics = require("ics")
+
 ---@type Module
 return {
   name = "calendar",
@@ -23,7 +26,7 @@ return {
         local ok, result = pcall(function()
           -- One day extra: the screen decides what "today" is from its clock, and a state fetched
           -- just before midnight must still cover the last column.
-          return ctx.ical.events(ctx.http.get(url, { timeout = 20 }), { from = from, days = ctx.config.days + 1 })
+          return ics.events(ctx.http.get(url, { timeout = 20 }), { from = from, days = ctx.config.days + 1 }, ctx)
         end)
         if ok then
           for _, e in ipairs(result) do events[#events + 1] = e end

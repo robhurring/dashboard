@@ -120,6 +120,50 @@ impl Vm {
     }
 }
 
+/// A module's other `.lua` files, by name without the extension: what `require("name")` may load.
+pub type Libs = std::sync::Arc<std::collections::BTreeMap<String, std::sync::Arc<str>>>;
+
+/// Evaluates a module's `module.lua` in its own environment, with a `require` that loads only that
+/// module's sibling files (each once). Modules stay self-contained folders: nothing else is reachable.
+pub async fn eval_module(vm: &Vm, path: &std::path::Path, source: &str, libs: &Libs) -> Result<mlua::Value, String> {
+    let env = module_env(&vm.lua, path, libs).map_err(|e| clean_error(&e))?;
+    let chunk = vm.lua.load(source).set_name(path.display().to_string()).set_environment(env);
+    vm.run(Duration::from_secs(1), chunk.eval_async()).await
+}
+
+fn module_env(lua: &Lua, path: &std::path::Path, libs: &Libs) -> mlua::Result<mlua::Table> {
+    let env = lua.create_table()?;
+    let meta = lua.create_table()?;
+    meta.set("__index", lua.globals())?;
+    env.set_metatable(Some(meta))?;
+    let cache = lua.create_table()?;
+    let dir = path.parent().map(|p| p.to_path_buf()).unwrap_or_default();
+    let (libs, scope) = (libs.clone(), env.clone());
+    let require = lua.create_function(move |lua, name: String| {
+        if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-') {
+            return Err(mlua::Error::runtime(format!("require({name:?}): use a plain file name from this module's folder, like require(\"ics\")")));
+        }
+        match cache.get::<mlua::Value>(name.as_str())? {
+            mlua::Value::Nil => {}
+            mlua::Value::LightUserData(_) => return Err(mlua::Error::runtime(format!("require({name:?}): circular require"))),
+            v => return Ok(v),
+        }
+        let Some(src) = libs.get(&name) else {
+            return Err(mlua::Error::runtime(format!("require({name:?}): no file {name}.lua in this module's folder")));
+        };
+        cache.set(name.as_str(), mlua::Value::LightUserData(mlua::LightUserData(std::ptr::null_mut())))?;
+        let chunk = lua.load(&**src).set_name(dir.join(format!("{name}.lua")).display().to_string()).set_environment(scope.clone());
+        let v = match chunk.eval::<mlua::Value>()? {
+            mlua::Value::Nil => mlua::Value::Boolean(true),
+            v => v,
+        };
+        cache.set(name.as_str(), v.clone())?;
+        Ok(v)
+    })?;
+    env.set("require", require)?;
+    Ok(env)
+}
+
 /// The first line of a Lua error, without mlua's prefix. Tracebacks stay in the logs.
 pub fn clean_error(e: &mlua::Error) -> String {
     let s = e.to_string();

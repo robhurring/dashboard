@@ -392,8 +392,7 @@ impl Actor {
 
 async fn load(def: Arc<ModuleDef>, overrides: &Value) -> Result<Loaded, String> {
     let vm = Vm::new().map_err(|e| e.to_string())?;
-    let chunk = vm.lua.load(&*def.source).set_name(def.path.display().to_string());
-    let value: LuaValue = vm.run(Duration::from_secs(1), chunk.eval_async()).await?;
+    let value: LuaValue = crate::lua_vm::eval_module(&vm, &def.path, &def.source, &def.libs).await?;
     let LuaValue::Table(t) = value else { return Err("module must return a table".into()) };
     let module = vm.lua.create_registry_value(t).map_err(|e| e.to_string())?;
     let config = merge_config(&def.config, overrides);

@@ -166,7 +166,6 @@ function Redis.info() end
 ---@field http Http
 ---@field sys Sys
 ---@field redis Redis
----@field ical Ical
 local Ctx = {}
 --- An environment variable's value: system-wide static settings such as API keys. Raises if unset.
 --- Keep upstream URLs hardcoded: `config` can be set by any screen.
@@ -180,27 +179,18 @@ function Ctx.now() end
 --- Today's calendar date, "YYYY-MM-DD", in the host time zone (the TZ environment variable).
 ---@return string
 function Ctx.today() end
+--- The moment a wall-clock time names in a zone: `ctx.instant("2026-10-16T09:30:00", "America/Los_Angeles")`.
+--- `zone` is an IANA name or "UTC"; nil means the host zone (the TZ environment variable). A time skipped by a
+--- daylight-saving jump lands just after the gap. Raises on an unknown zone or a malformed time.
+---@param wall string   -- YYYY-MM-DDTHH:MM:SS
+---@param zone string|nil
+---@return { epoch: integer, iso: string }   -- iso: RFC 3339 in the host zone
+function Ctx.instant(wall, zone) end
 ---@param level "debug"|"info"|"warn"|"error"
 ---@param msg string
 function Ctx.log(level, msg) end
 
----@class IcalEvent
----@field title string
----@field start string      -- RFC 3339 in the host zone, or YYYY-MM-DD when all_day
----@field end string
----@field all_day boolean
----@field calendar string   -- the calendar's X-WR-CALNAME
-
----@class Ical
-local Ical = {}
---- Every occurrence in [from, to) of an iCalendar text, recurrences expanded, in the host zone. Raises on bad input.
---- `from` defaults to today; give `to` (exclusive) or `days`.
----@param ics string
----@param window { from?: string, to?: string, days?: integer }   -- YYYY-MM-DD
----@return IcalEvent[]
-function Ical.events(ics, window) end
-
---- What `module.lua` returns.
+--- What `module.lua` returns. A module may `require("name")` the other .lua files in its own folder.
 --- A request delivered to a hook.
 ---@class HookRequest
 ---@field body any                          -- decoded JSON, or the raw text if the body is not JSON
