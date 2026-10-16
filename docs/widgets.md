@@ -8,7 +8,7 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?theme=gallery` to see every widget live.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
@@ -143,7 +143,7 @@ ui.list { empty = "Nothing waiting",
 
 ## ui.text
 
-A block of markdown: bold, italics, code, lists and line breaks. Links stay plain text.
+Short markdown for digests: bold, italics, inline code, lists and small headings. For anything richer, use ui.markdown.
 
 <img src="images/widgets/text.png" alt="ui.text" width="270">
 
@@ -154,6 +154,37 @@ ui.text { text = "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." 
 | Option | |
 |---|---|
 | `text` | markdown |
+
+## ui.markdown
+
+Full markdown for a rich tile: headings, links, task lists, tables, code blocks, quotes and images. Raw HTML is never rendered.
+
+<img src="images/widgets/markdown.png" alt="ui.markdown" width="390">
+
+```lua
+ui.markdown { text = [[
+## Release 1.8
+
+Shipped **today**. Notes at [example.com](https://example.com).
+
+- [x] migrate the database
+- [ ] announce it
+
+| Service | Status |
+|---|---|
+| api | up |
+| worker | ~~down~~ up |
+
+```sh
+bin/deploy prod
+```
+]] }
+```
+
+| Option | |
+|---|---|
+| `text` | markdown, GitHub-flavoured |
+| `links` | `false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab) |
 
 ## ui.badge
 

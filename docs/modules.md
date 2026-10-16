@@ -74,6 +74,7 @@ shows every widget with a picture, its Lua and its options.
 | `ui.line { points, min, max, unit, height }` | a sparkline, oldest point first |
 | `ui.bar { items }`, `ui.donut { items, center }` | small charts |
 | `ui.list { ... }` and `ui.row { title, meta, badge, on_tap }` | tappable lists |
+| `ui.markdown { text, links }` | full markdown: headings, links, tables, code blocks, task lists |
 | `ui.text { text }`, `ui.badge { text, tone }`, `ui.icon { name }` | text bits |
 | `ui.clock { tz, style, format, date }` | a clock that ticks in the browser |
 | `ui.group { direction, gap, ... }` | stack any of the above |

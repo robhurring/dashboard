@@ -19,6 +19,24 @@ export type Example = {
 const w = (type: string, props: Record<string, unknown> = {}, children: WidgetNode[] = []): WidgetNode =>
   ({ type, props, children }) as WidgetNode;
 
+const releaseNotes = [
+  "## Release 1.8",
+  "",
+  "Shipped **today**. Notes at [example.com](https://example.com).",
+  "",
+  "- [x] migrate the database",
+  "- [ ] announce it",
+  "",
+  "| Service | Status |",
+  "|---|---|",
+  "| api | up |",
+  "| worker | ~~down~~ up |",
+  "",
+  "```sh",
+  "bin/deploy prod",
+  "```",
+].join("\n");
+
 const cpu = [22, 25, 31, 28, 35, 41, 38, 33, 29, 34, 46, 52, 48, 41, 37, 33, 30, 36, 39, 35];
 
 export const EXAMPLES: Example[] = [
@@ -106,10 +124,19 @@ export const EXAMPLES: Example[] = [
   },
   {
     name: "text",
-    summary: "A block of markdown: bold, italics, code, lists and line breaks. Links stay plain text.",
+    summary: "Short markdown for digests: bold, italics, inline code, lists and small headings. For anything richer, use ui.markdown.",
     lua: `ui.text { text = "**Bins** go out *tonight*.\\n\\nRecycling is \`blue\` this week." }`,
     node: w("text", { text: "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." }),
     options: [["text", "markdown"]],
+  },
+  {
+    name: "markdown",
+    summary: "Full markdown for a rich tile: headings, links, task lists, tables, code blocks, quotes and images. Raw HTML is never rendered.",
+    lua: `ui.markdown { text = [[\n${releaseNotes}\n]] }`,
+    node: w("markdown", { text: releaseNotes }),
+    options: [["text", "markdown, GitHub-flavoured"], ["links", "`false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab)"]],
+    width: 520,
+    height: 430,
   },
   {
     name: "badge",

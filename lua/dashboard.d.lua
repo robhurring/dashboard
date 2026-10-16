@@ -39,10 +39,17 @@ function ui.list(props) end
 ---@return Widget
 function ui.row(props) end
 
---- Restricted markdown text.
+--- Short markdown for digests: emphasis, lists and small headings. For anything richer, use ui.markdown.
 ---@param props { text: string }
 ---@return Widget
 function ui.text(props) end
+
+--- Full markdown for rich tiles: headings, emphasis, links, lists and task lists, tables, fenced code,
+--- quotes, images (GitHub-flavoured). Raw HTML is never rendered. Links open in a new tab; `links = false`
+--- renders them as plain text, for screens that must never navigate away.
+---@param props { text: string, links?: boolean }
+---@return Widget
+function ui.markdown(props) end
 
 ---@param props { text: string|number, tone?: "good"|"bad"|"warn"|"muted" }
 ---@return Widget
