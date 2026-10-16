@@ -35,7 +35,7 @@ async fn setup(dash: Value) -> (tempfile::TempDir, Arc<Hub>, SupervisorHandle) {
         std::fs::write(dir.path().join(name).join("module.lua"), src).unwrap();
     }
     let hub = Hub::new(Persist::memory()).await.unwrap();
-    let sup = start(load_all(dir.path()).await, parse(&dash).unwrap(), chrono_tz::UTC, hub.clone(), reqwest::Client::new(), Limits::default(), services()).await;
+    let sup = start(load_all(&[dir.path().to_path_buf()]).await, parse(&dash).unwrap(), chrono_tz::UTC, hub.clone(), reqwest::Client::new(), Limits::default(), services()).await;
     (dir, hub, sup)
 }
 
@@ -181,7 +181,7 @@ async fn unknown_module_shows_a_load_error() {
 async fn reload_adds_and_removes_instances() {
     let (dir, hub, sup) = setup(json!({ "instances": [ { "id": "counter" } ] })).await;
     let mut events = hub.subscribe();
-    sup.reload(load_all(dir.path()).await, parse(&json!({ "instances": [ { "id": "counter:two", "module": "counter" } ] })).unwrap());
+    sup.reload(load_all(&[dir.path().to_path_buf()]).await, parse(&json!({ "instances": [ { "id": "counter:two", "module": "counter" } ] })).unwrap());
     tokio::time::sleep(secs(1)).await;
     let ids: Vec<String> = hub.catalog().await.into_iter().map(|i| i.id).collect();
     assert_eq!(ids, vec!["counter:two"]);

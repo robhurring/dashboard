@@ -19,6 +19,10 @@ One way to deploy the dashboard: a Dokku host with the Redis plugin. Nothing in 
 
 ## Deploy and inspect
 
+`bin/deploy` pushes a commit built just for Dokku: the current commit plus your private extensions
+gathered into `local/` (see [extending.md](../extending.md)). It force-pushes, since each deploy
+commit is new; the repo's own branches and history never include it.
+
     bin/deploy           # staging
     bin/logs             # tail staging logs
     curl --resolve dashboard-next.example.com:80:192.168.1.10 http://dashboard-next.example.com/healthz
@@ -52,17 +56,15 @@ System settings are environment variables, never application.lua:
 
 ## Secrets
 
-Modules read API keys from the environment with `ctx.env("NAME")`:
+Modules read API keys from the environment with `ctx.env("NAME")`. Modules from `local/` bring
+their own variables; set them the same way.
 
 | Module | Variable |
 |---|---|
 | weather | `OPENWEATHERMAP_API_KEY` |
 | stocks | `FINNHUB_API_KEY` |
-| todoist | `TODOIST_API_TOKEN` |
-| news | `NEWS_SUMMARY_URL` (n8n summary webhook, called with `?q=<topic>&n=<count>`) |
-| ainews | `NEWS_WEBHOOK_URL` (n8n headlines webhook) |
 | calendar | `GOOGLE_CALENDAR_ICS_URL` (one or more ICS URLs, comma-separated) |
-| hooks | `HOOKS_TOKEN`: the shared token callers send as `Authorization: Bearer <token>` (or `X-Hook-Token`) to hooks with `auth = { token = "HOOKS_TOKEN" }`, like slack. Unset means open, which is meant for local development only |
+| hooks | `HOOKS_TOKEN`: the shared token callers send as `Authorization: Bearer <token>` (or `X-Hook-Token`) to hooks with `auth = { token = "HOOKS_TOKEN" }`, like echo's. Unset means open, which is meant for local development only |
 
 ## Webhooks
 

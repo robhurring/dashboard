@@ -1,7 +1,10 @@
 # Themes and layout
 
-A theme is a folder under `web/themes/` with an `index.tsx` (the layout) and a `tokens.css` (colors
-and font). `wall` is the default; `?theme=<name>` picks another.
+A theme is a folder with an `index.tsx` (the layout) and a `tokens.css` (colors and font). The repo
+ships `home` (the default) and `gallery` (every widget, for reference) in `web/themes/`; your own go
+in `local/themes/` or any folder in `THEMES_DIR`. `?theme=<name>` picks one, and `DEFAULT_THEME`
+sets the one that opens without it. Import app pieces through `@dashboard/...` so a theme works
+from any folder.
 
 ## Pages
 

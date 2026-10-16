@@ -2,7 +2,17 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage() { echo "usage: bin/deploy [staging|prod]    push the current branch to Dokku (default: staging)"; }
+usage() {
+  cat <<USAGE
+usage: bin/deploy [staging|prod]    deploy the current commit to Dokku (default: staging)
+
+Private extensions ship too, without ever entering this repo's history: the commit pushed to Dokku is
+built off to the side from HEAD plus every extension folder (MODULES_DIR, THEMES_DIR, WIDGETS_DIR beyond
+the repo's own, and local/), gathered into local/. Only Dokku sees that commit.
+
+DEPLOY_DRY_RUN=1 builds that commit and lists what it would ship, without pushing.
+USAGE
+}
 target="${1:-staging}"
 case "$target" in
   -h|--help) usage; exit 0 ;;
@@ -15,5 +25,57 @@ case "$target" in
 esac
 
 git diff --quiet && git diff --cached --quiet || { echo "commit or stash your changes first" >&2; exit 1; }
-git remote get-url "$remote" >/dev/null 2>&1 || { echo "git remote '$remote' is missing; see docs/deploy/dokku.md" >&2; exit 1; }
-git push "$remote" "$(git branch --show-current):master"
+url=$(git remote get-url "$remote" 2>/dev/null) || { echo "git remote '$remote' is missing; see docs/deploy/dokku.md" >&2; exit 1; }
+
+# Folder lists from the environment or .env, with the same defaults the server and the web build use.
+setting() { local v="${!1:-}"; [[ -n "$v" ]] || v=$(grep -E "^$1=" .env 2>/dev/null | tail -1 | cut -d= -f2- || true); echo "${v:-$2}"; }
+modules_dirs=$(setting MODULES_DIR "modules:local/modules")
+themes_dirs=$(setting THEMES_DIR "web/themes:local/themes")
+widgets_dirs=$(setting WIDGETS_DIR "local/widgets")
+application=$(setting APPLICATION_FILE "")
+
+stage=$(mktemp -d)
+trap 'rm -rf "$stage"' EXIT
+git archive HEAD | tar -x -C "$stage"
+mkdir -p "$stage/local/modules" "$stage/local/themes" "$stage/local/widgets"
+
+# Copies each entry of the listed folders into local/<kind>; a later folder's entry replaces an earlier one.
+gather() {
+  local list=$1 skip=$2 kind=$3 dir entry
+  IFS=':' read -r -a dirs <<<"$list"
+  for dir in "${dirs[@]}"; do
+    dir="${dir// /}"
+    [[ -z "$dir" || "$dir" == "$skip" || ! -d "$dir" ]] && continue
+    for entry in "$dir"/*; do
+      [[ -e "$entry" ]] || continue
+      rm -rf "$stage/local/$kind/$(basename "$entry")"
+      cp -R "$entry" "$stage/local/$kind/"
+      echo "  + $kind/$(basename "$entry")  (from $dir)"
+    done
+  done
+}
+echo "extensions:"
+gather "$modules_dirs" modules modules
+gather "$themes_dirs" web/themes themes
+gather "$widgets_dirs" "" widgets
+if [[ -n "$application" && "$application" != "application.lua" ]]; then
+  cp "$application" "$stage/local/application.lua"; echo "  + application.lua  (from $application)"
+elif [[ -f local/application.lua ]]; then
+  cp local/application.lua "$stage/local/application.lua"; echo "  + application.lua  (from local/)"
+fi
+find "$stage/local" -name .git -prune -exec rm -rf {} +
+
+rev=$(git rev-parse --short HEAD)
+(
+  cd "$stage"
+  git init -q
+  git add -A
+  git add -f local   # the repo ignores local/; this commit is the one place it belongs
+  git -c user.name="bin/deploy" -c user.email="deploy@localhost" commit -q -m "deploy $rev with extensions"
+  if [[ -n "${DEPLOY_DRY_RUN:-}" ]]; then
+    echo "dry run: would push $(git rev-parse --short HEAD) to $url; files under local/:"
+    git ls-files local | sed 's/^/  /'
+  else
+    git push --force "$url" HEAD:master
+  fi
+)

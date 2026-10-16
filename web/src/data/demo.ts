@@ -1,6 +1,6 @@
 /**
  * Demo mode (`?demo`): the dashboard with made-up data and no server. Used for screenshots and for trying the UI
- * without API keys. Every value here is invented. Todoist moves and completions work, in this browser only.
+ * without API keys. Every value here is invented. The echo example's commands work, in this browser only.
  */
 import type { InstanceInfo } from "../protocol/InstanceInfo";
 import type { ServerMsg } from "../protocol/ServerMsg";
@@ -29,60 +29,6 @@ function isoLocal(d: Date): string {
 }
 const secs = (d: Date) => Math.floor(d.getTime() / 1000);
 
-type Task = {
-  id: string; content: string; description: string; due: string | null; priority: number; project_name: string;
-  labels: string[]; days_overdue: number | null; overdue: boolean; section_id: string | null; added_at: string;
-  updated_at: string; is_recurring: boolean;
-};
-
-function task(id: string, content: string, opts: Partial<Task> = {}): Task {
-  const added = at(-3, 9).toISOString();
-  return {
-    id, content, description: "", due: null, priority: 1, project_name: "Inbox", labels: [], days_overdue: null,
-    overdue: false, section_id: null, added_at: added, updated_at: added, is_recurring: false, ...opts,
-  };
-}
-
-const sections = [
-  { key: "backlog", label: "Backlog", section_id: null },
-  { key: "Working", label: "Working", section_id: "sec-working" },
-  { key: "Tracking", label: "Tracking", section_id: "sec-tracking" },
-];
-
-function initialTasks(): Task[] {
-  return [
-    task("t1", "Replace the garage door sensor battery", {
-      priority: 4, due: ymd(at(-1, 0)), days_overdue: 1, overdue: true, labels: ["home"],
-      description: "The opener blinks twice when it closes. CR2032, two in the junk drawer.",
-    }),
-    task("t2", "Book flights for Thanksgiving", { priority: 3, due: ymd(at(2, 0)), labels: ["travel"] }),
-    task("t3", "Write the README banner", { priority: 2, labels: ["dashboard"] }),
-    task("t4", "Renew car registration", { due: ymd(at(9, 0)) }),
-    task("t5", "Try the hourly forecast as the weather hero", { labels: ["dashboard"] }),
-    task("t6", "Set up the Pi 5 kiosk", {
-      priority: 3, section_id: "sec-working", labels: ["homelab"],
-      description: "Flash the image, copy pi/ over, run setup.sh. Check the touch rotation after the first boot.",
-    }),
-    task("t7", "Water the plants", { section_id: "sec-working", is_recurring: true, due: ymd(at(0, 0)) }),
-    task("t8", "Waiting on the contractor's quote", { section_id: "sec-tracking", labels: ["home"] }),
-    task("t9", "Router RMA shipped back", { section_id: "sec-tracking", due: ymd(at(4, 0)) }),
-  ];
-}
-
-function order(a: Task, b: Task): number {
-  if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
-  if (a.priority !== b.priority) return b.priority - a.priority;
-  return a.id < b.id ? -1 : 1;
-}
-
-function board(tasks: Task[]): JsonValue {
-  const columns = sections.map((s) => ({
-    key: s.key, label: s.label, ...(s.section_id ? { section_id: s.section_id } : {}),
-    items: tasks.filter((t) => t.section_id === s.section_id).sort(order),
-  }));
-  return { columns, total: tasks.length, project_id: "demo-inbox", synced_at: secs(new Date()) } as unknown as JsonValue;
-}
-
 function cpuHistory(): number[] {
   const out: number[] = [];
   let v = 18;
@@ -94,22 +40,9 @@ function cpuHistory(): number[] {
   return out;
 }
 
-function digest(topic: string): string {
-  const names: Record<string, string> = { ai: "AI", openai: "OpenAI" };
-  const name = names[topic] ?? topic.charAt(0).toUpperCase() + topic.slice(1);
-  return [
-    `# ${name} News Digest (demo)`,
-    "## About this panel",
-    `- **Digests from a webhook**: the news module asks a workflow (n8n, here) for a summary of ${name} news and lays it out in sections.`,
-    "- **Plain markdown in**: a title, section headings and bulleted items with a bold lead. Anything else still renders as markdown.",
-    "## In demo mode",
-    "- **Sample text**: point the module at a summary webhook and real digests replace this.",
-  ].join("\n");
-}
-
 type EchoState = { messages: { text: string; at: number }[]; pings: number };
 
-function snapshots(tasks: Task[], echo: EchoState = { messages: [], pings: 0 }): Record<string, Snap> {
+function snapshots(echo: EchoState = { messages: [], pings: 0 }): Record<string, Snap> {
   const now = new Date();
   const tzOffset = -now.getTimezoneOffset() * 60;
   const nextSlot = Math.ceil((now.getHours() + 1) / 3) * 3;
@@ -126,24 +59,11 @@ function snapshots(tasks: Task[], echo: EchoState = { messages: [], pings: 0 }):
   const view = (type: string, props: Record<string, JsonValue>, children: JsonValue[] = []) => ({ type, props, children });
 
   return {
-    todoist: {
-      info: { module: "todoist", kind: "state", component: "TodoistBoard", title: "Tasks · {{state.total}} open", icon: "list-todo", push_only: false },
-      config: { project: "inbox" }, state: board(tasks),
-    },
     "clock:home": {
       info: { module: "clock", kind: "view", component: null, title: null, icon: "clock", push_only: false },
       config: { tz: "America/New_York", label: "New York", date: "dddd, MMMM D", format: "", seconds: false, style: "digital" },
       state: {},
       view: view("clock", { tz: "America/New_York", label: "New York", date: "dddd, MMMM D", format: "", seconds: false, style: "digital" }),
-    },
-    slack: {
-      info: { module: "slack", kind: "state", component: "SlackStats", title: "Slack", icon: "message-square", push_only: true },
-      config: {}, pushed: true,
-      state: { items: [
-        { label: "DMs", number: 2, order: 1, tone: "bad", ring: true },
-        { label: "Mentions", number: 5, order: 2, icon: "at-sign" },
-        { label: "Threads", number: 3, order: 3, icon: "messages-square" },
-      ], pushed_at: secs(now) },
     },
     "weather:home": {
       info: { module: "weather", kind: "state", component: "Weather", title: "Weather: {{state.place}} ({{config.zip}})", icon: "cloud-sun", push_only: false },
@@ -179,20 +99,6 @@ function snapshots(tasks: Task[], echo: EchoState = { messages: [], pings: 0 }):
         ],
       },
     },
-    ainews: {
-      info: { module: "ainews", kind: "state", component: "Headlines", title: "AI news", icon: "sparkles", push_only: false },
-      config: { limit: 12 },
-      state: { fetched_at: secs(now), items: [
-        "Sample headline: the AI news panel lists recent stories from a feed",
-        "Each item shows its source and how long ago it was published",
-        "Tap a headline on the kiosk to open its summary",
-        "Point the module at any feed that returns title, source and time",
-      ].map((title, i) => ({ title, source: "Demo feed", summary: "", url: "https://example.com/", published_at: new Date(now.getTime() - (i + 1) * 47 * 60_000).toISOString() })) },
-    },
-    ...Object.fromEntries(["technology", "ai", "openai", "anthropic", "salesforce"].map((topic) => [`news:${topic}`, {
-      info: { module: "news", kind: "state", component: "News", title: "News · {{config.topic}}", icon: "newspaper", push_only: false },
-      config: { topic, count: 5 }, state: { topic, markdown: digest(topic), fetched_at: secs(now) },
-    } satisfies Snap])),
     "system:cpu": {
       info: { module: "system", kind: "view", component: null, title: "Server", icon: "server", push_only: false },
       config: { show: "cpu" }, state: system,
@@ -238,8 +144,6 @@ function snapshotMsg(id: string, s: Snap, rev: number): ServerMsg {
 
 /** Stands in for the websocket connection: same surface as LiveConnection, answered from the data above. */
 export class DemoConnection {
-  private tasks = initialTasks();
-  private done = new Map<string, Task>();
   private echo: EchoState = { messages: [], pings: 0 };
   private rev = 1;
 
@@ -250,7 +154,7 @@ export class DemoConnection {
   }
 
   start(): void {
-    const all = snapshots(this.tasks);
+    const all = snapshots(this.echo);
     const instances: InstanceInfo[] = Object.entries(all).map(([id, s]) => ({ id, ...s.info }));
     this.apply({ type: "welcome", server: "demo", protocol: 1, instances });
     for (const [id, s] of Object.entries(all)) this.apply(snapshotMsg(id, s, this.rev));
@@ -260,20 +164,8 @@ export class DemoConnection {
   refresh(): void {}
 
   async command(instance: string, action: string, args: JsonValue = {}): Promise<void> {
-    if (instance === "echo") return this.echoCommand(action, args);
-    if (instance !== "todoist") throw new Error("demo mode only runs Todoist and Echo commands");
-    const a = args as { id?: string; section_id?: string | null };
-    const found = this.tasks.find((t) => t.id === a.id);
-    if (action === "move" && found) found.section_id = a.section_id ?? null;
-    else if (action === "complete" && found) {
-      this.tasks = this.tasks.filter((t) => t !== found);
-      this.done.set(found.id, found);
-    } else if (action === "reopen" && a.id && this.done.has(a.id)) {
-      this.tasks.push(this.done.get(a.id)!);
-      this.done.delete(a.id);
-    } else throw new Error(`demo: cannot ${action} that task`);
-    // A beat like a real round trip, then the "server" confirms with a fresh snapshot.
-    setTimeout(() => this.apply(snapshotMsg("todoist", snapshots(this.tasks).todoist, ++this.rev)), 250);
+    if (instance !== "echo") throw new Error("demo mode only runs the echo example's commands");
+    return this.echoCommand(action, args);
   }
 
   /** The same rules as modules/echo/module.lua. */
@@ -285,6 +177,6 @@ export class DemoConnection {
     } else if (action === "ping") {
       this.echo = { ...this.echo, pings: this.echo.pings + 1 };
     } else throw new Error(`demo: echo has no command ${action}`);
-    setTimeout(() => this.apply(snapshotMsg("echo", snapshots(this.tasks, this.echo).echo, ++this.rev)), 100);
+    setTimeout(() => this.apply(snapshotMsg("echo", snapshots(this.echo).echo, ++this.rev)), 100);
   }
 }

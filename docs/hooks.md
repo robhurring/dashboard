@@ -1,18 +1,18 @@
 # Hooks
 
-Hooks let anything that can make an HTTP request push data to the dashboard: a cron job, an n8n
-workflow, a script on another machine. A module declares them, and the server routes
+Hooks let anything that can make an HTTP request push data to the dashboard: a cron job, a
+workflow tool, a script on another machine. A module declares them, and the server routes
 `POST /hooks/<instance>/<hook>` to its handler.
 
 ```lua
 hooks = {
-  push = {
-    description = "Replace the Slack stats shown on the dashboard.",
+  say = {
+    description = "Add a message to the echo panel, as if someone typed it.",
     auth = { token = "HOOKS_TOKEN" },
-    schema = { type = "object", additionalProperties = { type = "object", required = { "number" } } },
-    example = { Unread = { number = 12 } },
+    schema = { type = "object", required = { "text" }, properties = { text = { type = "string" } } },
+    example = { text = "Backup finished" },
     handle = function(ctx, req)
-      return { items = to_items(req.body), pushed_at = ctx.now() }  -- the new state
+      return remember(ctx.state, req.body.text, ctx.config.keep, ctx.now())  -- the new state
     end,
   },
 },
@@ -45,8 +45,8 @@ An agent can read the contract and send a valid payload without anyone writing i
 
 ```sh
 bin/hook                                  # list hooks
-bin/hook slack/push                       # describe one
-echo '{"Unread":{"number":12}}' | bin/hook slack/push -
+bin/hook echo/say                         # describe one
+echo '{"text":"Backup finished"}' | bin/hook echo/say -
 ```
 
 It reads `DASHBOARD_URL` and `HOOKS_TOKEN` from your environment or `.env`, and sends Cloudflare

@@ -9,6 +9,21 @@
 --      those args, against the current state.
 --   4. A command that returns a table replaces the state, so every screen showing this instance
 --      updates. `send` resolves when the command finishes, or rejects with the command's error.
+--   5. A hook does the same for callers outside the dashboard: POST /hooks/echo/say with
+--      { "text": "..." } adds a message, exactly as the Echo button does.
+
+-- The new state after remembering `text`: newest first, at most `keep` messages. The error's level 0
+-- leaves out Lua's "file:line:" prefix, so a screen shows just the message.
+local function remember(state, text, keep, now)
+  text = type(text) == "string" and text:match("^%s*(.-)%s*$") or ""
+  if text == "" then error("say something first", 0) end
+  local messages = json.array({ { text = text, at = now } })
+  for _, m in ipairs(state and state.messages or {}) do
+    if #messages >= keep then break end
+    messages[#messages + 1] = m
+  end
+  return { messages = messages, pings = state and state.pings or 0 }
+end
 
 ---@type Module
 return {
@@ -27,18 +42,10 @@ return {
   end,
 
   commands = {
-    -- Remember the text, newest first. An error here rejects the component's `send` with its message;
-    -- level 0 leaves out Lua's "file:line:" prefix, which a screen shouldn't show.
+    -- Remember the text. An error here rejects the component's `send` with its message.
     ---@param ctx Ctx
     echo = function(ctx, args)
-      local text = type(args.text) == "string" and args.text:match("^%s*(.-)%s*$") or ""
-      if text == "" then error("say something first", 0) end
-      local messages = json.array({ { text = text, at = ctx.now() } })
-      for _, m in ipairs(ctx.state.messages) do
-        if #messages >= ctx.config.keep then break end
-        messages[#messages + 1] = m
-      end
-      return { messages = messages, pings = ctx.state.pings }
+      return remember(ctx.state, args.text, ctx.config.keep, ctx.now())
     end,
 
     -- Count a pong. Commands don't have to take arguments.
@@ -46,5 +53,23 @@ return {
     ping = function(ctx)
       return { messages = json.array(ctx.state.messages), pings = ctx.state.pings + 1 }
     end,
+  },
+
+  hooks = {
+    say = {
+      description = "Add a message to the echo panel, as if someone typed it.",
+      -- Callers send "Authorization: Bearer $HOOKS_TOKEN". With HOOKS_TOKEN unset (local development), anyone can.
+      auth = { token = "HOOKS_TOKEN" },
+      schema = {
+        type = "object",
+        required = { "text" },
+        properties = { text = { type = "string", description = "What to say" } },
+      },
+      example = { text = "Backup finished" },
+      ---@param ctx Ctx
+      handle = function(ctx, req)
+        return remember(ctx.state, type(req.body) == "table" and req.body.text, ctx.config.keep, ctx.now())
+      end,
+    },
   },
 }

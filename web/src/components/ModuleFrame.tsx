@@ -47,7 +47,8 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
   else if (status?.load_error) body = <p role="alert" className="type-sub text-bad">{status.load_error}</p>;
   else if (firstLoad || !slice) body = <p className="type-sub flex items-center gap-2">{spinner}Loading…</p>;
   else if (slice.view) body = <WidgetTree node={slice.view} send={send} />;
-  else if (slice.kind === "state" && (component || info.component)) {
+  // Before any data a slice only carries status, so its kind is a placeholder: the catalog knows the real one.
+  else if ((slice.rev > 0 ? slice.kind : info.kind) === "state" && (component || info.component)) {
     const name = component ?? info.component!;
     const Custom = customComponent(info.module, name);
     body = Custom ? (

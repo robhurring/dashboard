@@ -1,6 +1,7 @@
 import { describe, expect, test, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { WidgetTree } from "./WidgetTree";
+import type { ReactNode } from "react";
+import { WidgetTree, registerWidget } from "./WidgetTree";
 import type { WidgetNode } from "../data/reduce";
 
 const node = (type: string, props: WidgetNode["props"] = {}, children: WidgetNode[] = []): WidgetNode => ({ type, props, children });
@@ -10,6 +11,17 @@ describe("WidgetTree", () => {
     render(<WidgetTree node={node("stat", { value: "58°", label: "Clouds", icon: "cloud-sun" })} send={vi.fn()} />);
     expect(screen.getByText("58°")).toBeInTheDocument();
     expect(screen.getByText("Clouds")).toBeInTheDocument();
+  });
+
+  test("renders a custom widget with its props, children and action props", async () => {
+    const send = vi.fn().mockResolvedValue(undefined);
+    registerWidget("moon", ({ phase, on_tap, children }: { phase: string; on_tap: () => void; children: ReactNode }) => (
+      <button onClick={on_tap}>moon {phase}{children}</button>
+    ));
+    render(<WidgetTree node={node("moon", { phase: "waxing", on_tap: { command: "look", args: {} } }, [node("badge", { text: "new" })])} send={send} />);
+    fireEvent.click(await screen.findByRole("button", { name: /moon waxing/ }));
+    expect(screen.getByText("new")).toBeInTheDocument();
+    expect(send).toHaveBeenCalledWith("look", {});
   });
 
   test("renders an icon by its Lucide name", () => {

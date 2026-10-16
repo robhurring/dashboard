@@ -16,9 +16,9 @@ pub fn to_lua(lua: &Lua, v: &serde_json::Value) -> mlua::Result<mlua::Value> {
     lua.to_value_with(v, SerializeOptions::new().serialize_none_to_null(false).serialize_unit_to_null(false))
 }
 
-/// The prelude's `KNOWN` table is generated from `widgets::WIDGETS`, the one list of widget names.
+/// The prelude's `KNOWN` table is generated from `widgets::known()`: the built-ins plus custom widgets.
 fn prelude() -> String {
-    let known = crate::widgets::WIDGETS.iter().map(|w| format!("{w} = true")).collect::<Vec<_>>().join(", ");
+    let known = crate::widgets::known().iter().map(|w| format!("{w} = true")).collect::<Vec<_>>().join(", ");
     format!("local KNOWN = {{ {known} }}\n{PRELUDE}")
 }
 

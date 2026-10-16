@@ -11,8 +11,9 @@ import { EXAMPLES } from "../themes/gallery/examples.ts";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.resolve(here, "../../docs/images");
 const port = Number(process.env.SCREENSHOT_PORT ?? 5199);
-const base = `http://localhost:${port}/?demo`;
-const pages = ["tasks", "glance", "news", "status"];
+// Pinned to the public theme and demo data, so a developer's DEFAULT_THEME or local/ never shows up here.
+const base = `http://localhost:${port}/?demo&theme=home`;
+const pages = ["glance", "status"];
 
 const vite = spawn("npx", ["vite", "--port", String(port), "--strictPort"], { cwd: path.resolve(here, ".."), stdio: "ignore" });
 try {
@@ -36,7 +37,7 @@ try {
   // The widget gallery: one image per widget, then docs/widgets.md from the same examples.
   mkdirSync(`${out}/widgets`, { recursive: true });
   const gallery = await context.newPage();
-  await gallery.goto(`${base}&theme=gallery`, { waitUntil: "networkidle" });
+  await gallery.goto(`http://localhost:${port}/?demo&theme=gallery`, { waitUntil: "networkidle" });
   await gallery.waitForTimeout(1200);
   for (const ex of EXAMPLES) {
     await gallery.locator(`#widget-${ex.name}`).screenshot({ path: `${out}/widgets/${ex.name}.png` });

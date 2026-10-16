@@ -12,3 +12,8 @@ __pycache__/
 
 # Internal planning notes, kept local
 /docs/superpowers/
+
+# Private extensions (modules, themes, widgets): usually a clone of a private repo. See docs/extending.md.
+/local/
+# Private Rust tests, linked in from local/tests by bin/test
+/server/tests/local_*

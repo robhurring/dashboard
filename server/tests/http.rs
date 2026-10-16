@@ -8,7 +8,7 @@ use tower::ServiceExt;
 async fn healthz_reports_ok_and_unknown_paths_serve_the_app() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("index.html"), "<p>shell</p>").unwrap();
-    let app = static_router(dir.path());
+    let app = static_router(dir.path(), None);
 
     let res = app.clone().oneshot(Request::get("/healthz").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(res.status(), 200);
@@ -29,7 +29,7 @@ async fn the_shell_is_never_cached_assets_are_immutable_and_missing_assets_are_4
     std::fs::write(dir.path().join("index.html"), "<p>shell</p>").unwrap();
     std::fs::create_dir_all(dir.path().join("assets")).unwrap();
     std::fs::write(dir.path().join("assets/index-abc123.js"), "console.log(1)").unwrap();
-    let app = static_router(dir.path());
+    let app = static_router(dir.path(), None);
     let get = |path: &'static str| { let app = app.clone(); async move { app.oneshot(Request::get(path).body(Body::empty()).unwrap()).await.unwrap() } };
 
     for path in ["/", "/index.html", "/some/client/route"] {
@@ -43,6 +43,25 @@ async fn the_shell_is_never_cached_assets_are_immutable_and_missing_assets_are_4
     // An old page asking for last build's script must get a 404, never the HTML shell.
     let res = get("/assets/index-OLD999.js").await;
     assert_eq!(res.status(), 404);
+}
+
+#[tokio::test]
+async fn the_shell_carries_the_default_theme_from_the_environment() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("index.html"), r#"<head><meta name="dashboard-default-theme" content="" /></head>"#).unwrap();
+    let body = |app: axum::Router, path: &'static str| async move {
+        let res = app.oneshot(Request::get(path).body(Body::empty()).unwrap()).await.unwrap();
+        assert_eq!(res.headers()["cache-control"], "no-cache", "{path}");
+        String::from_utf8(axum::body::to_bytes(res.into_body(), 4096).await.unwrap().to_vec()).unwrap()
+    };
+    for path in ["/", "/index.html", "/some/client/route"] {
+        let html = body(static_router(dir.path(), Some("wall".into())), path).await;
+        assert!(html.contains(r#"content="wall""#), "{path}: {html}");
+    }
+    let html = body(static_router(dir.path(), Some(r#"x"><script>"#.into())), "/").await;
+    assert!(html.contains(r#"content="x&quot;&gt;&lt;script&gt;""#), "escaped: {html}");
+    let html = body(static_router(dir.path(), None), "/").await;
+    assert!(html.contains(r#"content="""#), "{html}");
 }
 
 #[test]

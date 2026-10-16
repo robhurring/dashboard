@@ -1,30 +1,26 @@
 <p align="center"><img src="docs/images/banner.png" alt="dashboard: a modular, configurable dashboard for the wall" width="100%"></p>
 
 A modular, configurable dashboard for a touchscreen on the wall. Each panel is a small module
-(tasks, calendar, weather, Slack, server stats) and a theme decides which ones go on which page.
+(weather, calendar, markets, clocks, server stats) and a theme decides which ones go on which page.
 It's built to run full-screen on a Raspberry Pi with a touch display, works in any browser, and
 every open screen updates the moment the data changes.
 
+The repo ships a standard set of modules and a default theme. Anything specific to one home (its
+own services, its own layout, its own widgets) lives in a separate folder or private repo that the
+build pulls in, so it never has to be committed here. See [Extending](#extending).
+
 <table>
   <tr>
-    <td><img src="docs/images/tasks.png" alt="The Tasks page: a Todoist board with Backlog, Working and Tracking columns of sticky notes"></td>
-    <td><img src="docs/images/glance.png" alt="The Glance page: clock, Slack counts, weather with an hourly forecast, stocks and the next three days of calendar"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub><b>Tasks.</b> A Todoist project as a board. Drag a note between columns or tap Done; it syncs back.</sub></td>
-    <td align="center"><sub><b>Glance.</b> Clock, Slack, weather, markets and the next three days.</sub></td>
-  </tr>
-  <tr>
+    <td><img src="docs/images/glance.png" alt="The Glance page: a clock, weather with an hourly forecast, markets and the next three days of calendar"></td>
     <td><img src="docs/images/status.png" alt="The Status page: CPU, memory and Redis gauges above an hour of CPU history"></td>
-    <td><img src="docs/images/news.png" alt="The News page: headlines and markdown news digests"></td>
   </tr>
   <tr>
+    <td align="center"><sub><b>Glance.</b> Clock, weather, markets and the next three days.</sub></td>
     <td align="center"><sub><b>Status.</b> The server it runs on, refreshed every few seconds.</sub></td>
-    <td align="center"><sub><b>News.</b> Headlines plus daily digests from an n8n workflow.</sub></td>
   </tr>
 </table>
 
-Swipe (or use the arrow keys) to change pages. After five minutes it drifts back to Tasks.
+Swipe (or use the arrow keys) to change pages. After five minutes it drifts back to the first one.
 
 ## Try it
 
@@ -36,9 +32,8 @@ bin/dev                        # server on :4000, UI on :5173, both reload on sa
 open "http://localhost:5173/?demo"
 ```
 
-`?demo` runs the UI on made-up data with no server and no API keys. It's what the screenshots
-above are taken from, and the Tasks board still works: drag cards around and complete them.
-Drop `?demo` and add keys to `.env` to see your own data.
+`?demo` runs the UI on made-up data with no server and no API keys; it's what the screenshots
+above are taken from. Drop `?demo` and add keys to `.env` to see your own data.
 
 ## How it works
 
@@ -99,13 +94,13 @@ become that instance's config:
 The server only runs what some screen is showing, and a page you've swiped away from stops
 polling until you come back.
 
-**Hooks** let other systems push data in instead of the dashboard pulling it. The `slack` module
-has no fetch at all; whatever counts the unread messages posts them:
+**Hooks** let other systems push data in instead of the dashboard pulling it: a cron job, a CI
+run, a home-automation script. The example `echo` module takes messages this way:
 
 ```sh
-curl -X POST http://localhost:4000/hooks/slack/push \
+curl -X POST http://localhost:4000/hooks/echo/say \
   -H "Authorization: Bearer $HOOKS_TOKEN" \
-  -d '{"DMs": {"number": 2, "tone": "bad"}, "Mentions": {"number": 5}}'
+  -d '{"text": "Backup finished"}'
 ```
 
 Every hook publishes its schema and an example at `GET /hooks`, plus an OpenAPI document, so
@@ -115,14 +110,12 @@ whatever is sending to it (a cron job, n8n, an AI agent) can discover the contra
 
 | Module | Shows | Needs |
 |---|---|---|
-| `todoist` | a project as a draggable board | `TODOIST_API_TOKEN` |
-| `calendar` | the next few days from one or more ICS feeds | `GOOGLE_CALENDAR_ICS_URL` |
+| `calendar` | the next few days from one or more ICS feeds (Google Calendar's secret address works) | `GOOGLE_CALENDAR_ICS_URL` |
 | `weather` | now, hi/lo, sunrise/sunset and an hourly strip | `OPENWEATHERMAP_API_KEY` |
 | `stocks` | quotes and the day's change | `FINNHUB_API_KEY` |
-| `slack` | counts pushed by a hook; urgent ones ring | `HOOKS_TOKEN` on hosted servers |
-| `news`, `ainews` | markdown digests and headlines from webhooks | `NEWS_SUMMARY_URL`, `NEWS_WEBHOOK_URL` |
 | `clock` | digital or analog, any time zone | nothing |
 | `system`, `redis` | CPU, memory, load, uptime, Redis usage | nothing |
+| `echo` | the worked example of a component, commands and a hook | nothing |
 
 ## Running it for real
 
@@ -131,14 +124,25 @@ a Redis and listens on `$PORT`, so it runs anywhere that runs a container; `bin/
 to [Dokku](https://dokku.com). A kiosk only needs a browser pointed at it. Every open screen
 reloads itself when a new build ships, so a wall display never needs a hand to update.
 
-## Where it's going
+## Extending
 
-The bundled `wall` theme is one specific layout, with its Todoist project, location and news
-topics written into it. Next up is separating reusable layouts from personal ones: a sensible
-default theme in the repo, and custom themes and settings kept outside it.
+Modules, themes and widgets are found in folders, and the repo's own are just the first of each:
+
+| Setting | Default | Holds |
+|---|---|---|
+| `MODULES_DIR` | `modules:local/modules` | modules (`<name>/module.lua`, optional `ui/`) |
+| `THEMES_DIR` | `web/themes:local/themes` | themes (`<name>/index.tsx`) |
+| `WIDGETS_DIR` | `local/widgets` | custom widgets (`<name>.tsx`, used as `ui.<name>`) |
+| `DEFAULT_THEME` | `home` | the theme that opens without `?theme=` |
+
+Later folders win, so a module in `local/modules/weather` replaces the stock one. `local/` is
+gitignored: clone a private repo there (or set `LOCAL_REPO` and `bin/setup` will), and your own
+modules, layout and `application.lua` stay private while `bin/deploy` still ships them. The details
+are in [docs/extending.md](docs/extending.md).
 
 ## Docs
 
+- [Extending](docs/extending.md): private modules, themes and widgets in your own folder or repo
 - [Writing a module](docs/modules.md): state, views, custom components, commands and hooks
 - [Widgets](docs/widgets.md): every built-in widget, with pictures and options
 - [Themes and layout](docs/themes.md): pages, rows, columns and `<Slot>` props

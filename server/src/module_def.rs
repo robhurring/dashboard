@@ -176,17 +176,23 @@ async fn read_libs(module_path: &Path) -> Result<crate::lua_vm::Libs, String> {
     Ok(Arc::new(libs))
 }
 
-/// Loads every `<dir>/<name>/module.lua`. Broken modules are kept as errors keyed by folder name.
-pub async fn load_all(dir: &Path) -> ModuleSet {
+/// Loads every `<dir>/<name>/module.lua` across `dirs`, in order: a later folder's module replaces an
+/// earlier one with the same name. Missing folders are skipped. Broken modules are kept as errors keyed by folder name.
+pub async fn load_all(dirs: &[PathBuf]) -> ModuleSet {
     let mut out = BTreeMap::new();
-    let Ok(mut entries) = tokio::fs::read_dir(dir).await else { return out };
-    while let Ok(Some(entry)) = entries.next_entry().await {
-        let path = entry.path().join("module.lua");
-        if !path.is_file() {
-            continue;
+    for dir in dirs {
+        let Ok(mut entries) = tokio::fs::read_dir(dir).await else { continue };
+        let mut found = Vec::new();
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path().join("module.lua");
+            if path.is_file() {
+                found.push((entry.file_name().to_string_lossy().to_string(), path));
+            }
         }
-        let name = entry.file_name().to_string_lossy().to_string();
-        out.insert(name, ModuleDef::load(&path).await.map(Arc::new));
+        found.sort();
+        for (name, path) in found {
+            out.insert(name, ModuleDef::load(&path).await.map(Arc::new));
+        }
     }
     out
 }

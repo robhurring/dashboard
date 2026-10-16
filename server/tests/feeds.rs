@@ -1,24 +1,14 @@
-//! The news, ainews and calendar modules against stubs of their upstreams.
-use axum::{Json, Router, extract::Query, routing::get};
+//! The calendar module against a stub of its upstream.
+use axum::{Router, routing::get};
 use dashboard::hub::Hub;
 use dashboard::instance::{FetchOutcome, InstanceEvent, InstanceSpec, Limits, spawn};
 use dashboard::module_def::ModuleDef;
 use dashboard::persist::Persist;
 use serde_json::{Value, json};
-use std::{collections::HashMap, path::Path, sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 async fn stub() -> String {
     let app = Router::new()
-        .route("/news", get(|Query(q): Query<HashMap<String, String>>| async move {
-            assert_eq!(q["n"], "3");
-            Json(json!([{ "output": format!("## {}\n\n- one\n- two", q["q"]) }]))
-        }))
-        .route("/ai-news", get(|| async {
-            Json(json!({ "items": [
-                { "title": "Big model &amp; Bluesky&#8217;s &quot;tool&quot; &lt;3", "summary": "s &#x27;x&#x27;", "url": "https://x", "source": "Verge", "publishedAt": "2026-10-15T10:00:00Z" },
-                { "title": "Small model", "summary": "s", "url": null, "source": null }
-            ] }))
-        }))
         .route("/cal.ics", get(|| async {
             "BEGIN:VCALENDAR\r\nX-WR-CALNAME:Home\r\nBEGIN:VEVENT\r\nUID:1\r\nDTSTART:20000101T130000Z\r\nDTEND:20000101T140000Z\r\nSUMMARY:Daily\r\nRRULE:FREQ=DAILY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
         }));
@@ -46,28 +36,12 @@ async fn fetch(module: &str, config: Value) -> (Value, Option<Value>) {
 }
 
 #[tokio::test]
-async fn news_ainews_and_calendar_modules_fetch_and_render() {
+async fn calendar_module_fetches_and_renders() {
     let base = stub().await;
     // SAFETY: this binary runs a single test; nothing else reads the environment concurrently.
     unsafe {
-        std::env::set_var("NEWS_SUMMARY_URL", format!("{base}/news"));
-        std::env::set_var("NEWS_WEBHOOK_URL", format!("{base}/ai-news"));
         std::env::set_var("GOOGLE_CALENDAR_ICS_URL", format!(" {base}/cal.ics , {base}/cal.ics, {base}/gone.ics"));
     }
-
-    let (state, view) = fetch("news", json!({ "topic": "anthropic", "count": 3 })).await;
-    assert_eq!(state["topic"], "anthropic");
-    assert_eq!(state["markdown"], "## anthropic\n\n- one\n- two");
-    assert!(view.is_none(), "news is a custom component");
-
-    let (state, view) = fetch("ainews", json!({})).await;
-    assert_eq!(state["items"].as_array().unwrap().len(), 2);
-    assert_eq!(state["items"][0]["source"], "Verge");
-    assert_eq!(state["items"][0]["published_at"], "2026-10-15T10:00:00Z");
-    assert!(view.is_none(), "ainews is a custom component");
-    assert_eq!(state["items"][0]["title"], "Big model & Bluesky’s \"tool\" <3");
-    assert_eq!(state["items"][0]["summary"], "s 'x'");
-    assert_eq!(state["items"][1]["title"], "Small model");
 
     // Two good feeds (with sloppy spacing) and one that 404s, three days: the daily event appears 3 times per good feed,
     // and the dead feed is counted, not fatal.

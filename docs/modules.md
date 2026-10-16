@@ -132,7 +132,8 @@ A few details worth knowing:
 - **Errors** a command raises reject `send` with their message. Pass level `0` to `error` so the
   message doesn't start with Lua's `file:line:`.
 - **Returning nothing** leaves the state alone. Call `ctx.refresh()` instead when the real answer
-  comes from upstream: the Todoist board's `move` and `complete` post to Todoist, then refresh.
+  comes from upstream, such as a command that posts a change to an API and then wants the
+  fresh data.
 - **Widgets run commands too.** In a `view`, `ui.row { on_tap = cmd("open", { id = 7 }) }` sends
   `open` when tapped, with no component at all.
 - **Empty lists** need `json.array({})`, or they reach the screen as `{}`.
@@ -153,7 +154,7 @@ type CustomProps = {
 Components live in `modules/<name>/ui/index.tsx`, are found at build time and load only when a
 screen shows them. A component owns its whole slot, header included; a slot can ask for the
 standard frame with `chrome="full"`. One file can export several components, and a slot picks
-another with `component="TodoistList"`.
+another with `component="Compact"`.
 
 ## Hooks
 

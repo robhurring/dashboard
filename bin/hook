@@ -14,7 +14,7 @@ usage: bin/hook                          list every hook the server offers
   CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET
                   a Cloudflare Access service token; sent as headers when set (needed behind Cloudflare Access)
 
-  example: echo '{"Unread":{"number":12}}' | bin/hook slack/push -
+  example: echo '{"text":"Backup finished"}' | bin/hook echo/say -
 USAGE
 }
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }

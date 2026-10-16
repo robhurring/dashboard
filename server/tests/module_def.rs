@@ -86,7 +86,7 @@ async fn load_all_keeps_broken_modules_as_errors() {
     module(&dir, "good", r#"return { name = "good" }"#);
     module(&dir, "bad", r#"return { name = "nope" }"#);
     std::fs::create_dir_all(dir.path().join("not-a-module")).unwrap();
-    let all = load_all(dir.path()).await;
+    let all = load_all(&[dir.path().to_path_buf()]).await;
     assert_eq!(all.len(), 2);
     assert!(all["good"].is_ok());
     assert!(all["bad"].as_ref().unwrap_err().contains("must match its folder"));
@@ -134,4 +134,18 @@ async fn require_only_reaches_files_in_the_module_folder() {
         let err = ModuleDef::load(&module(&dir, name, src)).await.unwrap_err();
         assert!(err.contains(expected), "{name}: {err}");
     }
+}
+
+#[tokio::test]
+async fn later_module_folders_override_earlier_ones_by_name_and_missing_folders_are_skipped() {
+    let base = tempfile::tempdir().unwrap();
+    let custom = tempfile::tempdir().unwrap();
+    module(&base, "clock", r#"return { name = "clock", title = "stock clock" }"#);
+    module(&base, "weather", r#"return { name = "weather" }"#);
+    module(&custom, "clock", r#"return { name = "clock", title = "my clock" }"#);
+    module(&custom, "mine", r#"return { name = "mine" }"#);
+    let dirs = vec![base.path().to_path_buf(), base.path().join("does-not-exist"), custom.path().to_path_buf()];
+    let all = load_all(&dirs).await;
+    assert_eq!(all.keys().cloned().collect::<Vec<_>>(), vec!["clock", "mine", "weather"]);
+    assert_eq!(all["clock"].as_ref().unwrap().title.as_deref(), Some("my clock"));
 }

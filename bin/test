@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-usage() { echo "usage: bin/test    run Rust and frontend tests; fails if generated protocol types drift"; }
+usage() { echo "usage: bin/test    run Rust and frontend tests, including local/'s; fails if generated protocol types drift"; }
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
   "") ;;
@@ -10,6 +10,11 @@ case "${1:-}" in
 esac
 
 export TEST_REDIS_URL="${TEST_REDIS_URL:-redis://127.0.0.1:6380}"
+# Private extensions can carry Rust tests in local/tests; link them in (gitignored) so cargo runs them too.
+rm -f server/tests/local_*.rs
+if [[ -d local/tests ]]; then
+  for t in local/tests/*.rs; do [[ -e "$t" ]] && ln -s "../../$t" "server/tests/local_$(basename "$t")"; done
+fi
 cargo test --workspace
 if [[ -d web/src/protocol ]] && ! git diff --quiet -- web/src/protocol web/src/serde_json; then
   echo "generated protocol types changed; commit web/src/protocol and web/src/serde_json" >&2

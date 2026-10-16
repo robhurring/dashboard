@@ -151,6 +151,15 @@ describe("ModuleFrame", () => {
     expect(screen.queryByTestId("stale-dot")).toBeNull();
   });
 
+  test("a push-only module whose only message so far is a status still renders its component", async () => {
+    registerComponent("pushed", "Tiles", ({ state }: CustomProps) => <div>{state ? "tiles" : "Waiting for the first push"}</div>);
+    useData.setState({ catalog: [{ id: "pushed", module: "pushed", kind: "state", component: "Tiles", title: null, icon: null, push_only: true }], instances: {} });
+    // A status before any snapshot: what the server sends for an instance that has never had data.
+    useData.getState().apply({ type: "status", instance: "pushed", status: status({ ok: false, fetched_at: null }) });
+    render(<ModuleFrame id="pushed" title="Pushed" chrome="full" />);
+    expect(await screen.findByText("Waiting for the first push")).toBeInTheDocument();
+  });
+
   test("unknown instances say so", () => {
     render(<ModuleFrame id="nope" />);
     expect(screen.getByText(/Unknown instance/)).toBeInTheDocument();
