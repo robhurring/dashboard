@@ -14,7 +14,7 @@ function tree(files: string[]): string {
 }
 
 describe("scan", () => {
-  test("later folders override earlier ones; a module without a UI drops the earlier UI", () => {
+  test("the first folder with a name wins, like PATH; a winning module without a UI has none", () => {
     const root = tree([
       "base/clock/module.lua", "base/clock/ui/index.tsx",
       "base/todo/module.lua", "base/todo/ui/index.tsx",
@@ -26,8 +26,8 @@ describe("scan", () => {
     ]);
     const r = (p: string) => path.join(root, p);
     const found = scan({
-      modulesDirs: [r("base"), r("missing"), r("mine")],
-      themesDirs: [r("themes"), r("local-themes")],
+      modulesDirs: [r("mine"), r("missing"), r("base")],
+      themesDirs: [r("local-themes"), r("themes")],
       widgetsDirs: [r("widgets")],
       builtinWidgets: ["stat", "ticker"],
     });

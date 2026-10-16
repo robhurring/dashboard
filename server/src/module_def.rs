@@ -176,8 +176,8 @@ async fn read_libs(module_path: &Path) -> Result<crate::lua_vm::Libs, String> {
     Ok(Arc::new(libs))
 }
 
-/// Loads every `<dir>/<name>/module.lua` across `dirs`, in order: a later folder's module replaces an
-/// earlier one with the same name. Missing folders are skipped. Broken modules are kept as errors keyed by folder name.
+/// Loads every `<dir>/<name>/module.lua` across `dirs`, searched like `$PATH`: the first folder with a
+/// module by a given name wins. Missing folders are skipped. Broken modules are kept as errors keyed by folder name.
 pub async fn load_all(dirs: &[PathBuf]) -> ModuleSet {
     let mut out = BTreeMap::new();
     for dir in dirs {
@@ -191,6 +191,10 @@ pub async fn load_all(dirs: &[PathBuf]) -> ModuleSet {
         }
         found.sort();
         for (name, path) in found {
+            if out.contains_key(&name) {
+                tracing::debug!(module = %name, shadowed = %path.display(), "an earlier folder already has this module");
+                continue;
+            }
             out.insert(name, ModuleDef::load(&path).await.map(Arc::new));
         }
     }

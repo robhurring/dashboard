@@ -8,7 +8,7 @@ if [[ -f .env ]]; then
     [[ -n "${!var:-}" ]] || eval "$(grep -E "^$var=" .env | tail -1 | sed 's/^/export /')"
   done
 fi
-PI_HOST="${PI_HOST:-kiosk}"
+PI_HOST="${PI_HOST:-}"
 PI_DIR="${PI_DIR:-dashboard-pi}"
 usage() {
   cat <<USAGE
@@ -20,6 +20,10 @@ usage: bin/pi <command>    manage the kiosk Pi over ssh (PI_HOST=$PI_HOST)
 USAGE
 }
 
+if [[ -z "$PI_HOST" && "${1:-}" != "" && "${1:-}" != "-h" && "${1:-}" != "--help" ]]; then
+  echo "set PI_HOST (in .env or the environment) to the Pi's ssh host, e.g. PI_HOST=admin@dashboard-kiosk.local" >&2
+  exit 1
+fi
 case "${1:-}" in
   setup)
     ssh "$PI_HOST" "mkdir -p ~/$PI_DIR"

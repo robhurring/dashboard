@@ -36,7 +36,7 @@ COPY --from=web /src/web/dist /app/web/dist
 COPY modules/ /app/modules/
 COPY application.lua /app/application.lua
 COPY --from=context /ctx/local /app/local
-# Paths are the defaults, relative to /app: modules then local/modules, local/widgets, and
+# Paths are the defaults, relative to /app: local/modules then modules (first match wins), local/widgets, and
 # local/application.lua when it exists, else application.lua.
 ENV PORT=5000
 EXPOSE 5000

@@ -1,6 +1,6 @@
 declare module "virtual:dashboard/extensions" {
   type Loader = () => Promise<Record<string, unknown>>;
-  /** Module name -> its ui/index.tsx, from the MODULES_DIR folders (later folders win). */
+  /** Module name -> its ui/index.tsx, from the MODULES_DIR folders (first match wins, like $PATH). */
   export const moduleUis: Record<string, Loader>;
   /** Theme name -> its index.tsx, from the THEMES_DIR folders. */
   export const themes: Record<string, Loader>;

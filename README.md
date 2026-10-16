@@ -117,12 +117,16 @@ whatever is sending to it (a cron job, n8n, an AI agent) can discover the contra
 | `system`, `redis` | CPU, memory, load, uptime, Redis usage | nothing |
 | `echo` | the worked example of a component, commands and a hook | nothing |
 
-## Running it for real
+## Running it
 
-`bin/build --docker` produces a single image: the server, the built UI and the modules. It needs
-a Redis and listens on `$PORT`, so it runs anywhere that runs a container; `bin/deploy` pushes
-to [Dokku](https://dokku.com). A kiosk only needs a browser pointed at it. Every open screen
-reloads itself when a new build ships, so a wall display never needs a hand to update.
+`bin/build --docker` builds a single image with the server, the built UI and the modules (plus
+anything in `local/`). It needs a Redis (`REDIS_URL`) and listens on `$PORT`; that's all the app
+asks of where it runs. Every open screen reloads itself when a new build ships.
+
+Two guides cover a complete setup:
+
+- [Deploying with Dokku](docs/deploy/dokku.md): `bin/deploy` pushes to a Dokku host, staging first.
+- [Raspberry Pi kiosk](docs/pi.md): a Pi with a touch display that boots straight into the dashboard.
 
 ## Extending
 
@@ -130,12 +134,13 @@ Modules, themes and widgets are found in folders, and the repo's own are just th
 
 | Setting | Default | Holds |
 |---|---|---|
-| `MODULES_DIR` | `modules:local/modules` | modules (`<name>/module.lua`, optional `ui/`) |
-| `THEMES_DIR` | `web/themes:local/themes` | themes (`<name>/index.tsx`) |
+| `MODULES_DIR` | `local/modules:modules` | modules (`<name>/module.lua`, optional `ui/`) |
+| `THEMES_DIR` | `local/themes:web/themes` | themes (`<name>/index.tsx`) |
 | `WIDGETS_DIR` | `local/widgets` | custom widgets (`<name>.tsx`, used as `ui.<name>`) |
 | `DEFAULT_THEME` | `home` | the theme that opens without `?theme=` |
 
-Later folders win, so a module in `local/modules/weather` replaces the stock one. `local/` is
+They're searched like `$PATH`: the first folder with a name wins, so a module in
+`local/modules/weather` replaces the stock one. `local/` is
 gitignored: clone a private repo there (or set `LOCAL_REPO` and `bin/setup` will), and your own
 modules, layout and `application.lua` stay private while `bin/deploy` still ships them. The details
 are in [docs/extending.md](docs/extending.md).
@@ -147,7 +152,7 @@ are in [docs/extending.md](docs/extending.md).
 - [Widgets](docs/widgets.md): every built-in widget, with pictures and options
 - [Themes and layout](docs/themes.md): pages, rows, columns and `<Slot>` props
 - [Hooks](docs/hooks.md): pushing data in, auth options, `bin/hook`
-- [Pi kiosk](docs/pi-kiosk.md): turning a Raspberry Pi and a touch display into the wall screen
+- [Raspberry Pi kiosk](docs/pi.md): setting up a Pi and a touch display from scratch to show the dashboard
 - [Deploying with Dokku](docs/deploy/dokku.md)
 
 ## Development

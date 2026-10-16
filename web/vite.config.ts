@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => {
   // The same folder lists the server reads, from the environment or the repo's .env.
   const env = { ...loadEnv(mode, repoRoot, ""), ...process.env };
   const folders = {
-    modulesDirs: pathList(env.MODULES_DIR || "modules:local/modules", repoRoot),
-    themesDirs: pathList(env.THEMES_DIR || "web/themes:local/themes", repoRoot),
+    modulesDirs: pathList(env.MODULES_DIR || "local/modules:modules", repoRoot),
+    themesDirs: pathList(env.THEMES_DIR || "local/themes:web/themes", repoRoot),
     widgetsDirs: pathList(env.WIDGETS_DIR || "local/widgets", repoRoot),
     builtinWidgets: BUILTIN_WIDGETS,
   };

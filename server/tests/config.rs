@@ -7,12 +7,12 @@ fn config(pairs: &[(&str, &str)]) -> Config {
 }
 
 #[test]
-fn modules_dir_defaults_to_the_repo_folder_then_local() {
-    assert_eq!(config(&[]).modules_dirs, vec![PathBuf::from("modules"), PathBuf::from("local/modules")]);
+fn modules_dir_defaults_to_local_then_the_repo_folder() {
+    assert_eq!(config(&[]).modules_dirs, vec![PathBuf::from("local/modules"), PathBuf::from("modules")]);
 }
 
 #[test]
-fn modules_dir_is_a_colon_separated_list_in_override_order() {
+fn modules_dir_is_a_colon_separated_list_searched_in_order() {
     let c = config(&[("MODULES_DIR", "/app/modules: /srv/mine/modules ::")]);
     assert_eq!(c.modules_dirs, vec![PathBuf::from("/app/modules"), PathBuf::from("/srv/mine/modules")]);
 }

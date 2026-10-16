@@ -31,19 +31,20 @@ On another machine, set `LOCAL_REPO=git@github.com:you/dashboard-local.git` in `
 
 ## Folders anywhere
 
-The folder lists are settings, colon-separated. Later folders win when two hold the same name, so
-`local/modules/weather` replaces the stock `weather` module, UI included.
+The folder lists are settings, colon-separated, and searched like `$PATH`: the first folder that
+has a given name wins. `local/` comes first by default, so `local/modules/weather` replaces the stock
+`weather` module, UI included.
 
 | Setting | Default |
 |---|---|
-| `MODULES_DIR` | `modules:local/modules` |
-| `THEMES_DIR` | `web/themes:local/themes` |
+| `MODULES_DIR` | `local/modules:modules` |
+| `THEMES_DIR` | `local/themes:web/themes` |
 | `WIDGETS_DIR` | `local/widgets` |
 | `APPLICATION_FILE` | `local/application.lua` if it exists, else `application.lua` |
 | `DEFAULT_THEME` | `home` |
 
 Point them at other folders to keep extensions somewhere else, for example
-`MODULES_DIR=modules:/Users/me/code/garden/modules`. Relative paths are from the repo root. The
+`MODULES_DIR=/Users/me/code/garden/modules:local/modules:modules`. Relative paths are from the repo root. The
 server and the web build read the same settings, from the environment or `.env`.
 
 ## Themes

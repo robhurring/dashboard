@@ -5,8 +5,8 @@ use std::path::PathBuf;
 pub struct Config {
     pub port: u16,
     pub static_dir: PathBuf,
-    /// `MODULES_DIR`: folders of modules, colon-separated, in override order: a module in a later folder
-    /// replaces one with the same name in an earlier folder. Missing folders are skipped.
+    /// `MODULES_DIR`: folders of modules, colon-separated, searched like `$PATH`: the first folder that
+    /// has a module by a given name wins. Missing folders are skipped.
     pub modules_dirs: Vec<PathBuf>,
     /// `WIDGETS_DIR`: folders of custom widgets (`<name>.tsx`), colon-separated. Default `local/widgets`.
     pub widgets_dirs: Vec<PathBuf>,
@@ -39,7 +39,7 @@ impl Config {
         Ok(Self {
             port,
             static_dir: var("STATIC_DIR").unwrap_or_else(|| "web/dist".into()).into(),
-            modules_dirs: path_list(&var("MODULES_DIR").unwrap_or_else(|| "modules:local/modules".into())),
+            modules_dirs: path_list(&var("MODULES_DIR").unwrap_or_else(|| "local/modules:modules".into())),
             default_theme: var("DEFAULT_THEME"),
             widgets_dirs: path_list(&var("WIDGETS_DIR").unwrap_or_else(|| "local/widgets".into())),
             // A private overlay's application.lua, when there is one, replaces the repo's.

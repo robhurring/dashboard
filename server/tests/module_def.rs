@@ -137,14 +137,14 @@ async fn require_only_reaches_files_in_the_module_folder() {
 }
 
 #[tokio::test]
-async fn later_module_folders_override_earlier_ones_by_name_and_missing_folders_are_skipped() {
+async fn the_first_folder_with_a_module_wins_like_path_and_missing_folders_are_skipped() {
     let base = tempfile::tempdir().unwrap();
     let custom = tempfile::tempdir().unwrap();
     module(&base, "clock", r#"return { name = "clock", title = "stock clock" }"#);
     module(&base, "weather", r#"return { name = "weather" }"#);
     module(&custom, "clock", r#"return { name = "clock", title = "my clock" }"#);
     module(&custom, "mine", r#"return { name = "mine" }"#);
-    let dirs = vec![base.path().to_path_buf(), base.path().join("does-not-exist"), custom.path().to_path_buf()];
+    let dirs = vec![custom.path().to_path_buf(), base.path().join("does-not-exist"), base.path().to_path_buf()];
     let all = load_all(&dirs).await;
     assert_eq!(all.keys().cloned().collect::<Vec<_>>(), vec!["clock", "mine", "weather"]);
     assert_eq!(all["clock"].as_ref().unwrap().title.as_deref(), Some("my clock"));

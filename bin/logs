@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
+cd "$(dirname "$0")/.."
 
-usage() { echo "usage: bin/logs [staging|prod]    tail the deployed app's logs (LOG_LINES, DOKKU_HOST)"; }
+usage() { echo "usage: bin/logs [staging|prod]    tail the deployed app's logs (LOG_LINES lines first, default 100)"; }
 case "${1:-staging}" in
   -h|--help) usage; exit 0 ;;
-  staging) app="${DOKKU_STAGING_APP:-dashboard-next}" ;;
-  prod) app="${DOKKU_PROD_APP:-dashboard}" ;;
+  staging) remote="${DOKKU_STAGING_REMOTE:-dokku-next}" ;;
+  prod) remote="${DOKKU_PROD_REMOTE:-dokku}" ;;
   *) usage >&2; exit 1 ;;
 esac
-exec ssh -t "${DOKKU_HOST:-lab}" dokku logs "$app" -t -n "${LOG_LINES:-100}"
+# The git remote says where the app lives: dokku@<server>:<app>.
+url=$(git remote get-url "$remote" 2>/dev/null) || { echo "git remote '$remote' is missing; see docs/deploy/dokku.md" >&2; exit 1; }
+server="${url%%:*}"
+app="${url#*:}"
+exec ssh -t "$server" logs "$app" -t -n "${LOG_LINES:-100}"

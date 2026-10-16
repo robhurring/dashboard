@@ -1,74 +1,75 @@
 # Deploying with Dokku
 
-One way to deploy the dashboard: a Dokku host with the Redis plugin. Nothing in the server depends on it.
+One way to run the dashboard: a [Dokku](https://dokku.com) server with the Redis plugin, a staging
+app and a production app. Nothing in the app depends on Dokku; it's a container that needs a Redis.
 
-| Piece | Value |
-|---|---|
-| Host | `lab` (ssh alias), Dokku with the redis plugin |
-| Staging app | `dashboard-next`, git remote `dokku-next`, `bin/deploy` |
-| Production app | `dashboard`, git remote `dokku`, `bin/deploy prod` |
-| Domain | `dashboard.example.com` via the existing cloudflared tunnel and Cloudflare Access |
-| Redis | dedicated Dokku Redis service `dashboard-redis` with append-only persistence |
+The examples use `dokku.example.com` for the server, `dashboard-next` for staging and `dashboard` for
+production. Commands run on the server through Dokku's ssh user: `ssh dokku@dokku.example.com <command>`.
 
-## First-time staging setup
+## Create the apps
 
-    ssh lab dokku apps:create dashboard-next
-    ssh lab dokku domains:set dashboard-next dashboard-next.example.com
-    ssh lab dokku ports:set dashboard-next http:80:5000   # the image exposes 5000; serve it on 80
-    git remote add dokku-next dokku@lab:dashboard-next
+```sh
+ssh dokku@dokku.example.com apps:create dashboard-next
+ssh dokku@dokku.example.com domains:set dashboard-next dashboard-next.example.com
+ssh dokku@dokku.example.com ports:set dashboard-next http:80:5000   # the image listens on 5000
+git remote add dokku-next dokku@dokku.example.com:dashboard-next
+```
 
-## Deploy and inspect
-
-`bin/deploy` pushes a commit built just for Dokku: the current commit plus your private extensions
-gathered into `local/` (see [extending.md](../extending.md)). It force-pushes, since each deploy
-commit is new; the repo's own branches and history never include it.
-
-    bin/deploy           # staging
-    bin/logs             # tail staging logs
-    curl --resolve dashboard-next.example.com:80:192.168.1.10 http://dashboard-next.example.com/healthz
+Production is the same with `dashboard` and a git remote named `dokku`.
 
 ## Redis
 
-A dedicated service, never the shared one: the shared Redis has no append-only log or memory limit.
+Give the dashboard its own Redis service with an append-only log, so state survives restarts:
 
-    ssh lab dokku redis:create dashboard-redis
-    # append to /var/lib/dokku/services/redis/dashboard-redis/config/redis.conf:
-    #   appendonly yes / appendfsync everysec / maxmemory 256mb / maxmemory-policy noeviction
-    ssh lab dokku redis:restart dashboard-redis
-    ssh lab dokku redis:link dashboard-redis dashboard-next
+```sh
+ssh dokku@dokku.example.com redis:create dashboard-redis
+# then in /var/lib/dokku/services/redis/dashboard-redis/config/redis.conf on the server:
+#   appendonly yes / appendfsync everysec / maxmemory 256mb / maxmemory-policy noeviction
+ssh dokku@dokku.example.com redis:restart dashboard-redis
+ssh dokku@dokku.example.com redis:link dashboard-redis dashboard-next
+```
 
-## Production
-
-The production app is `dashboard` (git remote `dokku`, domain dashboard.example.com behind Cloudflare Access). It was cut over
-from the Python app on 2026-10-16; the last Python commit is tagged `python-final`. Deploy with:
-
-    bin/deploy prod     # pushes the current branch to dokku:master and asks for confirmation
-
-Staging is `dashboard-next` (remote `dokku-next`), `bin/deploy` with no argument.
+Linking sets `REDIS_URL`. Staging and production can share the service with different
+`REDIS_PREFIX` values, or each get their own.
 
 ## Settings
 
-System settings are environment variables, never application.lua:
+Everything is an environment variable:
 
-    ssh lab dokku config:set dashboard-next TZ=America/New_York   # cron schedules run in this zone (default UTC)
+```sh
+ssh dokku@dokku.example.com config:set dashboard-next TZ=America/New_York DEFAULT_THEME=home
+```
 
-`PORT`, `REDIS_URL` and `REDIS_PREFIX` are set by Dokku and the Redis link.
-
-## Secrets
-
-Modules read API keys from the environment with `ctx.env("NAME")`. Modules from `local/` bring
-their own variables; set them the same way.
-
-| Module | Variable |
+| Variable | |
 |---|---|
-| weather | `OPENWEATHERMAP_API_KEY` |
-| stocks | `FINNHUB_API_KEY` |
-| calendar | `GOOGLE_CALENDAR_ICS_URL` (one or more ICS URLs, comma-separated), and `CALENDAR_<NAME>` for panels with `feeds="<name>"` |
-| hooks | `HOOKS_TOKEN`: the shared token callers send as `Authorization: Bearer <token>` (or `X-Hook-Token`) to hooks with `auth = { token = "HOOKS_TOKEN" }`, like echo's. Unset means open, which is meant for local development only |
+| `TZ` | the zone schedules and "today" use (default UTC) |
+| `DEFAULT_THEME` | the theme a screen opens without `?theme=` (default `home`) |
+| `REDIS_PREFIX` | key prefix, when apps share a Redis |
+| `HOOKS_TOKEN` | the token callers send to hooks with `auth = { token = "HOOKS_TOKEN" }`; unset means open, for local development only |
+| `OPENWEATHERMAP_API_KEY` | weather |
+| `FINNHUB_API_KEY` | stocks |
+| `GOOGLE_CALENDAR_ICS_URL` | calendar: one or more ICS URLs, comma-separated |
+| `CALENDAR_<NAME>` | calendar panels with `feeds="<name>"` |
 
-## Webhooks
+Modules from `local/` bring their own variables; set them the same way. Pass values with special
+characters quoted for the remote shell, for example `config:set app KEY=$(printf %q "$VALUE")`.
 
-A module declares its hooks in its own `module.lua` (`hooks = { name = { auth, description, schema, example, handle } }`). A push-only module (hooks, no `fetch`) that needs no required config also runs on its own, as an instance named after the module, so it needs no `application.lua` entry. `GET /hooks/openapi.json` is all of them as one OpenAPI 3.1 document. `GET /hooks` lists every hook; `GET /hooks/<instance>/<hook>` returns its contract: auth header, JSON schema and a
-working example. `bin/hook` reads both and signs payloads for you. From the LAN, post straight to the lab
-(`DASHBOARD_URL=http://192.168.1.10` with `-H 'Host: dashboard.example.com'`, or the hosts-file override the kiosk uses);
-from outside, `dashboard.example.com/hooks/*` needs a Cloudflare Access rule (Bypass for HMAC-signed hooks).
+## Deploy
+
+```sh
+bin/deploy           # staging (git remote dokku-next)
+bin/deploy prod      # production (git remote dokku), after a confirmation
+bin/logs             # tail staging's logs; bin/logs prod for production
+```
+
+`bin/deploy` pushes a commit built just for Dokku: the current commit plus your private extensions
+gathered into `local/` (see [extending.md](../extending.md)). It force-pushes, since each deploy commit
+is new; the repo's own history never includes it. Screens reload themselves when the new build is up.
+
+## Behind a proxy or tunnel
+
+Any reverse proxy in front of Dokku works, as long as it passes WebSockets through on `/ws`. If the
+dashboard sits behind an authenticating proxy (Cloudflare Access, for example), hooks need a way
+through it: a bypass rule for `/hooks/*`, a service token the caller sends, or calling the server on
+the local network directly. `bin/hook` sends Cloudflare service-token headers when
+`CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are set.

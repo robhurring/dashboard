@@ -5,7 +5,7 @@
 # Invoked by `bin/pi setup`, which first copies this directory to ~/dashboard-pi.
 #
 # Assumes Raspberry Pi OS Desktop (Bookworm or newer, labwc session) flashed with
-# Raspberry Pi Imager, with hostname/user/ssh key already set. See docs/pi-kiosk.md.
+# Raspberry Pi Imager, with hostname/user/ssh key already set. See docs/pi.md.
 set -euo pipefail
 
 # The dashboard's hostname, and optionally the LAN IP to pin it to (a hosts override, for when local DNS

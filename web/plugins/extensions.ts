@@ -1,7 +1,7 @@
 /*
  * Extensions: module UIs, themes and widgets that live outside the repo's own folders, found from the
- * same folder lists the server reads (MODULES_DIR, THEMES_DIR, WIDGETS_DIR; colon-separated, later
- * folders override earlier ones by name). The app imports them all from one generated module,
+ * same folder lists the server reads (MODULES_DIR, THEMES_DIR, WIDGETS_DIR; colon-separated and
+ * searched like $PATH: the first folder with a given name wins). The app imports them all from one generated module,
  * `virtual:dashboard/extensions`, so nothing in src/ hardcodes where they live.
  */
 import { existsSync, readdirSync, statSync } from "node:fs";
@@ -17,19 +17,20 @@ const entries = (dir: string) => (isDir(dir) ? readdirSync(dir).sort() : []);
 /** What each folder list provides, by name. Pure filesystem reads; no Vite involved. */
 export function scan({ modulesDirs, themesDirs, widgetsDirs, builtinWidgets }: Folders): Found {
   const found: Found = { moduleUis: {}, themes: {}, widgets: {}, skipped: [] };
+  const seenModules = new Set<string>();
   for (const dir of modulesDirs) {
     for (const name of entries(dir)) {
-      if (!existsSync(path.join(dir, name, "module.lua"))) continue;
+      if (seenModules.has(name) || !existsSync(path.join(dir, name, "module.lua"))) continue;
+      // The first module by this name wins entirely, UI included: if it has no UI, there is none.
+      seenModules.add(name);
       const ui = path.join(dir, name, "ui", "index.tsx");
-      // A later module replaces an earlier one entirely, UI included.
       if (existsSync(ui)) found.moduleUis[name] = ui;
-      else delete found.moduleUis[name];
     }
   }
   for (const dir of themesDirs) {
     for (const name of entries(dir)) {
       const index = path.join(dir, name, "index.tsx");
-      if (existsSync(index)) found.themes[name] = index;
+      if (!(name in found.themes) && existsSync(index)) found.themes[name] = index;
     }
   }
   for (const dir of widgetsDirs) {
@@ -39,7 +40,7 @@ export function scan({ modulesDirs, themesDirs, widgetsDirs, builtinWidgets }: F
       const name = entry.replace(/\.tsx$/, "");
       if (!/^[a-z][a-z0-9_]*$/.test(name)) found.skipped.push(`${file}: widget names are lowercase letters, digits and _`);
       else if (builtinWidgets.includes(name)) found.skipped.push(`${file}: ui.${name} is built in`);
-      else found.widgets[name] = file;
+      else if (!(name in found.widgets)) found.widgets[name] = file;
     }
   }
   return found;
