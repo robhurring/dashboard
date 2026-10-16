@@ -1,0 +1,75 @@
+@import "tailwindcss";
+/* Module UIs under modules/<name>/ui use the same utilities, so Tailwind scans them too. */
+@source "../modules";
+
+/*
+ * The token contract. Every utility below reads a variable a theme sets in its tokens.css,
+ * so `bg-panel` or `text-ink` follow whichever theme is loaded. Add a token here and set it
+ * in every theme.
+ */
+@theme static inline {
+  --color-canvas: var(--t-canvas);
+  --color-panel: var(--t-panel);
+  --color-ink: var(--t-ink);
+  --color-ink-muted: var(--t-ink-muted);
+  --color-accent: var(--t-accent);
+  --color-good: var(--t-good);
+  --color-bad: var(--t-bad);
+  --color-warn: var(--t-warn);
+  --color-paper-canary: var(--t-paper-canary);
+  --color-paper-coral: var(--t-paper-coral);
+  --color-paper-tangerine: var(--t-paper-tangerine);
+  --color-paper-sky: var(--t-paper-sky);
+  --color-track: var(--t-track);
+  --font-sans: var(--t-font-sans);
+}
+
+@theme inline {
+  --animate-fade-in: fade-in 350ms ease-out both;
+}
+
+/* Opacity only: an animated transform, even one ending at none, makes the element the containing
+   block for fixed-position descendants such as drag overlays and toasts. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Charts are display only: no focus ring on the SVG surface. */
+.recharts-wrapper, .recharts-wrapper svg, .recharts-surface { outline: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in { animation: none; }
+}
+
+/*
+ * Everything is sized in em, so the root size sets the scale. It follows whichever of width or
+ * height is tighter (both give 16px at the 1280x720 kiosk), so a short wide window or a tall
+ * narrow one both keep every card's content inside the card.
+ */
+html {
+  font-size: clamp(9px, min(1.25vw, 2.222vh), 20px);
+}
+
+/* An app, not a document: pages scroll inside themselves, the viewport never does. */
+html, body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  @apply bg-canvas text-ink font-sans;
+}
+
+/*
+ * The type scale. Sizes are in em so a slot's `size` (compact / normal / large) scales a whole
+ * card; every widget picks from these instead of choosing its own sizes.
+ */
+@layer components {
+  .type-title { @apply text-[0.875em] text-ink-muted; }
+  .type-hero { @apply text-[3.25em] font-semibold leading-none tracking-tight tabular-nums; }
+  .type-value { @apply text-[2.25em] font-semibold leading-none tracking-tight tabular-nums; }
+  .type-label { @apply text-[1em] leading-snug; }
+  .type-sub { @apply text-[0.875em] leading-snug text-ink-muted; }
+  .type-row { @apply text-[1.125em] leading-snug; }
+}

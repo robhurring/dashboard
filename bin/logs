@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() { echo "usage: bin/logs [staging|prod]    tail the deployed app's logs (LOG_LINES, DOKKU_HOST)"; }
+case "${1:-staging}" in
+  -h|--help) usage; exit 0 ;;
+  staging) app="${DOKKU_STAGING_APP:-dashboard-next}" ;;
+  prod) app="${DOKKU_PROD_APP:-dashboard}" ;;
+  *) usage >&2; exit 1 ;;
+esac
+exec ssh -t "${DOKKU_HOST:-lab}" dokku logs "$app" -t -n "${LOG_LINES:-100}"

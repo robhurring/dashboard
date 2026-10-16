@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# Tools installed with `cargo install` live here; Homebrew's cargo does not put it on PATH.
+export PATH="$HOME/.cargo/bin:$PATH"
+
+usage() { echo "usage: bin/setup    install dependencies and prepare local development"; }
+[[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && { usage; exit 0; }
+
+need() { command -v "$1" >/dev/null || { echo "missing: $1 ($2)" >&2; exit 1; }; }
+need cargo "install rustup from https://rustup.rs"
+need node "install Node 22 or newer"
+need docker "install Docker Desktop"
+
+cargo fetch
+(cd web && npm install)
+[[ -f .env ]] || { cp .env.example .env; echo "created .env from .env.example; add your API keys"; }
+if [[ -f docker-compose.yml ]]; then docker compose up -d redis; fi
+# Development tools, installed with cargo so no other package manager is needed:
+#   ultraman   Procfile runner used by bin/dev for colored per-process logs
+#   watchexec  restarts the Rust server when a .rs file is saved
+ultraman --version >/dev/null 2>&1 || cargo install --locked ultraman
+command -v watchexec >/dev/null || cargo install --locked watchexec-cli
+echo "setup complete"

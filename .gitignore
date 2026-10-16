@@ -1,0 +1,14 @@
+/target
+/web/node_modules
+/web/dist
+/.env
+/.superpowers
+
+# Never track dependency or editor directories, whatever the subproject
+node_modules/
+__pycache__/
+.idea/
+.vscode/
+
+# Internal planning notes, kept local
+/docs/superpowers/

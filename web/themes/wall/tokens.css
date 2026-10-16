@@ -1,0 +1,17 @@
+/* Values for the token contract in src/index.css. */
+:root {
+  --t-canvas: #111110;
+  --t-panel: #1c1b19;
+  --t-ink: #e8e6e3;
+  --t-ink-muted: #9c9a97;
+  --t-accent: #8b7cf8;
+  --t-good: #73bf69;
+  --t-bad: #e02f44;
+  --t-warn: #fade2a;
+  --t-paper-canary: #f7ecb0;
+  --t-paper-coral: #f0685a;
+  --t-paper-tangerine: #f4b95b;
+  --t-paper-sky: #8fc6e6;
+  --t-track: #363430;
+  --t-font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+}

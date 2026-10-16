@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# The Rust server for development: hot reload of modules on, restart-on-save when watchexec exists.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# Tools installed with `cargo install` live here; Homebrew's cargo does not put it on PATH.
+export PATH="$HOME/.cargo/bin:$PATH"
+export DASHBOARD_WATCH=1
+if command -v watchexec >/dev/null; then
+  exec watchexec --restart --watch server/src --exts rs -- cargo run -p dashboard
+fi
+echo "watchexec not found: Rust changes need a restart (cargo install --locked watchexec-cli)"
+exec cargo run -p dashboard

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && {
+  echo "usage: bin/screenshots    regenerate docs/images (each page in demo mode, plus the banner) with Google Chrome"
+  exit 0
+}
+node web/scripts/screenshots.mjs

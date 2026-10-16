@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+usage() { echo "usage: bin/deploy [staging|prod]    push the current branch to Dokku (default: staging)"; }
+target="${1:-staging}"
+case "$target" in
+  -h|--help) usage; exit 0 ;;
+  staging) remote="${DOKKU_STAGING_REMOTE:-dokku-next}" ;;
+  prod)
+    remote="${DOKKU_PROD_REMOTE:-dokku}"
+    read -r -p "Deploy $(git branch --show-current) to PRODUCTION ($remote)? Type 'prod' to continue: " answer
+    [[ "$answer" == "prod" ]] || { echo "cancelled"; exit 1; } ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+git diff --quiet && git diff --cached --quiet || { echo "commit or stash your changes first" >&2; exit 1; }
+git remote get-url "$remote" >/dev/null 2>&1 || { echo "git remote '$remote' is missing; see docs/deploy/dokku.md" >&2; exit 1; }
+git push "$remote" "$(git branch --show-current):master"

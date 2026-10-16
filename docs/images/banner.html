@@ -1,0 +1,46 @@
+<!doctype html>
+<!-- Source for banner.png. Rendered at 1280x520 by bin/screenshots; it frames the page screenshots taken just before it. -->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --canvas: #111110; --ink: #e8e6e3; --muted: #9c9a97; --accent: #8b7cf8; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 520px; overflow: hidden; }
+  body {
+    background:
+      radial-gradient(900px 420px at 88% 30%, rgba(139, 124, 248, 0.16), transparent 70%),
+      radial-gradient(600px 300px at 10% 110%, rgba(244, 185, 91, 0.08), transparent 70%),
+      var(--canvas);
+    color: var(--ink); font-family: Figtree, system-ui, sans-serif; position: relative;
+  }
+  .copy { position: absolute; left: 72px; top: 0; bottom: 0; width: 430px; z-index: 2; display: flex; flex-direction: column; justify-content: center; }
+  .notes { display: flex; gap: 8px; margin-bottom: 26px; }
+  .notes i { width: 22px; height: 22px; border-radius: 3px; transform: rotate(-4deg); box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .notes i:nth-child(2) { transform: rotate(3deg); }
+  .notes i:nth-child(4) { transform: rotate(-2deg); }
+  h1 { font-size: 88px; font-weight: 700; letter-spacing: -0.035em; line-height: 0.95; }
+  h1 span { color: var(--accent); }
+  p { margin-top: 22px; font-size: 21px; line-height: 1.4; color: var(--muted); }
+  p b { color: var(--ink); font-weight: 600; }
+  .stack { margin-top: 28px; display: flex; gap: 10px; }
+  .stack span { font-size: 15px; font-weight: 500; color: var(--ink); padding: 6px 12px; border-radius: 999px; background: rgba(232,230,227,.07); border: 1px solid rgba(232,230,227,.09); }
+  .screen { position: absolute; width: 600px; aspect-ratio: 16 / 9; border-radius: 18px; padding: 12px; background: #050505;
+            box-shadow: 0 30px 80px rgba(0,0,0,.65), 0 0 0 1px rgba(255,255,255,.06); }
+  .screen img { width: 100%; height: 100%; display: block; border-radius: 7px; }
+  .back { right: -150px; top: 26px; transform: perspective(1600px) rotateY(-18deg) rotateZ(3deg) scale(.86); opacity: .55; }
+  .front { right: 96px; top: 112px; transform: perspective(1600px) rotateY(-14deg) rotateZ(-1.5deg); }
+</style>
+</head>
+<body>
+  <div class="copy">
+    <div class="notes"><i style="background:#f0685a"></i><i style="background:#f4b95b"></i><i style="background:#8fc6e6"></i><i style="background:#f7ecb0"></i></div>
+    <h1>dashboard<span>.</span></h1>
+    <p>A modular, configurable dashboard for the wall. Pick the panels, lay out the pages, and every screen stays <b>live</b>.</p>
+  </div>
+  <div class="screen back"><img src="tasks.png" alt=""></div>
+  <div class="screen front"><img src="glance.png" alt=""></div>
+</body>
+</html>

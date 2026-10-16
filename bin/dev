@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+# Tools installed with `cargo install` live here; Homebrew's cargo does not put it on PATH.
+export PATH="$HOME/.cargo/bin:$PATH"
+
+usage() { echo "usage: bin/dev    run Redis, the Rust server (port 4000) and Vite (port 5173) with live reload and both logs"; }
+[[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && { usage; exit 0; }
+
+docker compose up -d redis
+[[ -f .env ]] || cp .env.example .env
+
+# Procfile runners start commands through the login shell, whose init can reorder PATH and pick a
+# different node. Pin the one this shell resolves so the web process uses it too.
+export DASHBOARD_NODE_DIR="$(dirname "$(command -v node)")"
+
+# Procfile.dev runs both processes with prefixed, interleaved logs. foreman/overmind read .env themselves.
+# `command -v` is not enough: rbenv shims exist even when the gem is missing from the active Ruby.
+if overmind --version >/dev/null 2>&1; then
+  exec overmind start -f Procfile.dev
+elif ultraman --version >/dev/null 2>&1; then      # cargo install ultraman
+  exec ultraman start -f Procfile.dev -e .env
+elif foreman version >/dev/null 2>&1; then
+  exec foreman start -f Procfile.dev -e .env
+fi
+
+# Fallback without a Procfile runner: same processes, prefixed by hand. bash 3.2 compatible.
+set -a; . ./.env; set +a
+export PORT="${PORT:-4000}" REDIS_URL="${REDIS_URL:-redis://127.0.0.1:6380}" REDIS_PREFIX="${REDIS_PREFIX:-dev:}"
+# Everything started here shares this script's process group, so one signal to the group stops it all.
+cleanup() { trap - EXIT INT TERM; kill 0 2>/dev/null; wait 2>/dev/null || true; }
+trap cleanup EXIT INT TERM
+bin/dev-server 2>&1 | sed -u 's/^/[server] /' &
+(cd web && npm run dev -- --clearScreen false 2>&1 | sed -u 's/^/[web]    /') &
+echo "dashboard: http://localhost:5173"
+wait

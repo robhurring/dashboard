@@ -1,0 +1,2 @@
+server: bin/dev-server
+web: cd web && PATH="${DASHBOARD_NODE_DIR:-/usr/bin}:$PATH" npm run dev -- --clearScreen false

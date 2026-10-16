@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+usage() { echo "usage: bin/run [--docker]    run the production build locally on \$PORT (default 5000)"; }
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  --docker)
+    docker build -t dashboard:local .
+    exec docker run --rm -p "${PORT:-5000}:5000" --env-file .env -e PORT=5000 \
+      -e REDIS_URL="${REDIS_URL:-redis://host.docker.internal:6380}" dashboard:local ;;
+  "") ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+bin/build
+set -a; [[ -f .env ]] && . ./.env; set +a
+export PORT="${PORT:-5000}" STATIC_DIR=web/dist MODULES_DIR=modules APPLICATION_FILE=application.lua
+exec target/release/dashboard

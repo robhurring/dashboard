@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+usage() { echo "usage: bin/build [--docker]    build the frontend and release binary, or the Docker image"; }
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  --docker) docker build -t dashboard:local . ; exit 0 ;;
+  "") ;;
+  *) usage >&2; exit 1 ;;
+esac
+
+(cd web && npm run build)
+cargo build --release -p dashboard
+echo "built target/release/dashboard and web/dist"

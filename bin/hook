@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+usage() {
+  cat <<'USAGE'
+usage: bin/hook                          list every hook the server offers
+       bin/hook <instance>[/<hook>]      show a hook's contract (auth, schema, example)
+       bin/hook <instance>/<hook> <file|->   POST a JSON payload, signed with HMAC-SHA256
+
+  DASHBOARD_URL   server to talk to (default http://localhost:$PORT from .env, else http://localhost:4000)
+  HOOKS_TOKEN     the shared hook token, sent as "Authorization: Bearer ..." when the server requires one
+  HOOK_SECRET     signing secret for hmac hooks; defaults to <INSTANCE>_HOOK_SECRET
+  CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET
+                  a Cloudflare Access service token; sent as headers when set (needed behind Cloudflare Access)
+
+  example: echo '{"Unread":{"number":12}}' | bin/hook slack/push -
+USAGE
+}
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { usage; exit 0; }
+
+# .env provides PORT and the hook token in development; anything already in the environment wins.
+if [[ -f .env ]]; then
+  while IFS='=' read -r key value; do
+    [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
+    [[ -n "${!key+x}" ]] || export "$key=$value"
+  done < .env
+fi
+base="${DASHBOARD_URL:-http://localhost:${PORT:-4000}}"
+cf=()
+if [[ -n "${CF_ACCESS_CLIENT_ID:-}" && -n "${CF_ACCESS_CLIENT_SECRET:-}" ]]; then
+  cf=(-H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET")
+fi
+
+if [[ $# -lt 2 ]]; then
+  exec curl -fsS ${cf[@]+"${cf[@]}"} "$base/hooks${1:+/$1}"
+fi
+
+path="$1"; src="$2"
+body="$(if [[ "$src" == "-" ]]; then cat; else cat "$src"; fi)"
+contract="$(curl -fsS ${cf[@]+"${cf[@]}"} "$base/hooks/$path")"
+header="$(printf '%s' "$contract" | sed -n 's/.*"header":"\([^"]*\)".*/\1/p')"
+secret_var="${path%%/*}"; secret_var="$(printf '%s' "$secret_var" | tr '[:lower:]-' '[:upper:]_')_HOOK_SECRET"
+secret="${HOOK_SECRET:-${!secret_var:-}}"
+
+args=(-sS -o /dev/stderr -w '%{http_code}\n' -X POST -H 'Content-Type: application/json' --data-binary "$body" ${cf[@]+"${cf[@]}"})
+if [[ "$contract" == *'"type":"bearer"'* ]]; then
+  [[ -n "${HOOKS_TOKEN:-}" ]] || { echo "this server requires a token: set HOOKS_TOKEN" >&2; exit 1; }
+  args+=(-H "Authorization: Bearer $HOOKS_TOKEN")
+elif [[ -n "$header" ]]; then
+  [[ -n "$secret" ]] || { echo "no secret: set HOOK_SECRET or $secret_var" >&2; exit 1; }
+  sig="$(printf '%s' "$body" | openssl dgst -sha256 -hmac "$secret" -r | cut -d' ' -f1)"
+  args+=(-H "$header: $sig")
+fi
+code="$(curl "${args[@]}" "$base/hooks/$path")"
+echo "HTTP $code"
+[[ "$code" == 2* ]]
