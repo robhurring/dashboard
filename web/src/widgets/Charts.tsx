@@ -165,7 +165,7 @@ export function BarWidget({ items = [], label, unit }: { items?: Item[]; label?:
       </div>
       <ul className="mt-[0.5em] flex justify-around gap-2 text-center">
         {items.map((it, i) => (
-          <li key={it.label} className="min-w-0">
+          <li key={`${i}-${it.label}`} className="min-w-0">
             <div className="type-label tabular-nums">{fmt(it.value)}{unit}</div>
             <div className="type-sub flex items-center justify-center gap-1 truncate"><i className="size-[0.6em] rounded-full" style={{ background: palette(i) }} />{it.label}</div>
           </li>
@@ -194,7 +194,7 @@ export function Donut({ items = [], center, label }: { items?: Item[]; center?: 
       <ul className="flex min-w-0 flex-col gap-[0.25em]">
         {label && <li className="type-sub mb-[0.25em]">{label}</li>}
         {items.map((it, i) => (
-          <li key={it.label} className="type-label flex items-center gap-2">
+          <li key={`${i}-${it.label}`} className="type-label flex items-center gap-2">
             <i className="size-[0.6em] shrink-0 rounded-full" style={{ background: palette(i) }} />
             <span className="truncate">{it.label}</span>
             <span className="type-sub ml-auto tabular-nums">{fmt(it.value)}</span>

@@ -368,6 +368,16 @@ impl Supervisor {
     /// Starts the ticker for an instance that just became active: fetch now if stale, else schedule.
     async fn start_ticking(&mut self, id: &str, now: Instant, with_jitter: bool) {
         let Some(s) = self.scheds.get(id) else { return };
+        // A fetch with no schedule sets the starting state: it runs once, when a screen first shows
+        // the instance (or again after a failed first try), and never polls.
+        if s.schedule().is_none() {
+            let has_fetch = s.def.as_ref().is_ok_and(|d| d.has_fetch);
+            let shown = s.decl.poll == Poll::Always || !s.watchers.is_empty();
+            if has_fetch && shown && self.hub.get(id).await.is_none_or(|st| st.rev == 0) {
+                self.kick(id);
+            }
+            return;
+        }
         if !s.active(now) || s.next.is_some() {
             return;
         }

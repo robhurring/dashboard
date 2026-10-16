@@ -48,6 +48,20 @@ describe("demo mode", () => {
     vi.useRealTimers();
   });
 
+  test("the echo example runs its commands like the real module", async () => {
+    vi.useFakeTimers();
+    const msgs: ServerMsg[] = [];
+    const demo = new DemoConnection((m) => msgs.push(m));
+    demo.start();
+    await demo.command("echo", "echo", { text: "  hi  " });
+    await demo.command("echo", "ping");
+    vi.advanceTimersByTime(300);
+    const last = msgs.filter((m) => m.type === "snapshot" && m.instance === "echo").at(-1) as Extract<ServerMsg, { type: "snapshot" }>;
+    expect(last.state).toMatchObject({ messages: [{ text: "hi" }], pings: 1 });
+    await expect(demo.command("echo", "echo", { text: " " })).rejects.toThrow("say something first");
+    vi.useRealTimers();
+  });
+
   test("commands it cannot run are rejected", async () => {
     const demo = new DemoConnection(() => {});
     demo.start();

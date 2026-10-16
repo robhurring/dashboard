@@ -107,7 +107,9 @@ function digest(topic: string): string {
   ].join("\n");
 }
 
-function snapshots(tasks: Task[]): Record<string, Snap> {
+type EchoState = { messages: { text: string; at: number }[]; pings: number };
+
+function snapshots(tasks: Task[], echo: EchoState = { messages: [], pings: 0 }): Record<string, Snap> {
   const now = new Date();
   const tzOffset = -now.getTimezoneOffset() * 60;
   const nextSlot = Math.ceil((now.getHours() + 1) / 3) * 3;
@@ -212,6 +214,10 @@ function snapshots(tasks: Task[]): Record<string, Snap> {
         ]),
       ]),
     },
+    echo: {
+      info: { module: "echo", kind: "state", component: "Echo", title: "Echo", icon: "message-square", push_only: false },
+      config: { keep: 5 }, state: echo as unknown as JsonValue,
+    },
     "redis:memory": {
       info: { module: "redis", kind: "view", component: null, title: "Redis {{state.version}}", icon: "redis", push_only: false },
       config: { show: "memory" },
@@ -234,6 +240,7 @@ function snapshotMsg(id: string, s: Snap, rev: number): ServerMsg {
 export class DemoConnection {
   private tasks = initialTasks();
   private done = new Map<string, Task>();
+  private echo: EchoState = { messages: [], pings: 0 };
   private rev = 1;
 
   private apply: (m: ServerMsg) => void;
@@ -253,7 +260,8 @@ export class DemoConnection {
   refresh(): void {}
 
   async command(instance: string, action: string, args: JsonValue = {}): Promise<void> {
-    if (instance !== "todoist") throw new Error("demo mode only runs Todoist commands");
+    if (instance === "echo") return this.echoCommand(action, args);
+    if (instance !== "todoist") throw new Error("demo mode only runs Todoist and Echo commands");
     const a = args as { id?: string; section_id?: string | null };
     const found = this.tasks.find((t) => t.id === a.id);
     if (action === "move" && found) found.section_id = a.section_id ?? null;
@@ -266,5 +274,17 @@ export class DemoConnection {
     } else throw new Error(`demo: cannot ${action} that task`);
     // A beat like a real round trip, then the "server" confirms with a fresh snapshot.
     setTimeout(() => this.apply(snapshotMsg("todoist", snapshots(this.tasks).todoist, ++this.rev)), 250);
+  }
+
+  /** The same rules as modules/echo/module.lua. */
+  private async echoCommand(action: string, args: JsonValue): Promise<void> {
+    if (action === "echo") {
+      const text = String((args as { text?: unknown } | null)?.text ?? "").trim();
+      if (!text) throw new Error("say something first");
+      this.echo = { ...this.echo, messages: [{ text, at: Math.floor(Date.now() / 1000) }, ...this.echo.messages].slice(0, 5) };
+    } else if (action === "ping") {
+      this.echo = { ...this.echo, pings: this.echo.pings + 1 };
+    } else throw new Error(`demo: echo has no command ${action}`);
+    setTimeout(() => this.apply(snapshotMsg("echo", snapshots(this.tasks, this.echo).echo, ++this.rev)), 100);
   }
 }

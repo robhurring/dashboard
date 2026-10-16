@@ -17,6 +17,8 @@ fn services() -> dashboard::instance::HostServices {
 const COUNTER: &str = r#"return { name = "counter", every = "1m",
   fetch = function(ctx) return { n = ((ctx.state and ctx.state.n) or 0) + 1 } end }"#;
 const FLAKY: &str = r#"return { name = "flaky", every = "10m", fetch = function() error("upstream down") end }"#;
+const ONCE: &str = r#"return { name = "once",
+  fetch = function(ctx) return { n = ((ctx.state and ctx.state.n) or 0) + 1 } end }"#;
 const LABELLED: &str = r#"return { name = "labelled", every = "1m", config = { label = "default" },
   fetch = function(ctx) return { label = ctx.config.label } end }"#;
 
@@ -28,7 +30,7 @@ fn ids(hub: &Hub) -> impl std::future::Future<Output = Vec<String>> + '_ {
 
 async fn setup(dash: Value) -> (tempfile::TempDir, Arc<Hub>, SupervisorHandle) {
     let dir = tempfile::tempdir().unwrap();
-    for (name, src) in [("counter", COUNTER), ("flaky", FLAKY), ("labelled", LABELLED)] {
+    for (name, src) in [("counter", COUNTER), ("flaky", FLAKY), ("labelled", LABELLED), ("once", ONCE)] {
         std::fs::create_dir_all(dir.path().join(name)).unwrap();
         std::fs::write(dir.path().join(name).join("module.lua"), src).unwrap();
     }
@@ -60,6 +62,20 @@ async fn first_watch_fetches_then_ticks_on_schedule() {
     assert_eq!(rev(&hub, "counter").await, 2);
     tokio::time::sleep(secs(60)).await;
     assert_eq!(rev(&hub, "counter").await, 3);
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_fetch_without_a_schedule_runs_once_when_first_shown_and_never_polls() {
+    let (_d, hub, sup) = setup(json!({})).await;
+    sup.watch(1, vec![decl("once", "once", Value::Null)]);
+    tokio::time::sleep(secs(1)).await;
+    assert_eq!(rev(&hub, "once").await, 1);
+    tokio::time::sleep(secs(3600)).await;
+    assert_eq!(rev(&hub, "once").await, 1, "no schedule: no polling");
+    // Showing it again on another screen keeps the state it has.
+    sup.watch(2, vec![decl("once", "once", Value::Null)]);
+    tokio::time::sleep(secs(1)).await;
+    assert_eq!(rev(&hub, "once").await, 1);
 }
 
 #[tokio::test(start_paused = true)]

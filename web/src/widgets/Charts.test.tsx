@@ -64,3 +64,14 @@ describe("chart widgets", () => {
     expect(palette(6)).toBe(palette(0));
   });
 });
+
+test("items may repeat a label (two Tuesdays) without React key collisions", () => {
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  render(<WidgetTree node={{ type: "group", props: {}, children: [
+    { type: "bar", props: { items: [{ label: "T", value: 1 }, { label: "T", value: 2 }] }, children: [] },
+    { type: "donut", props: { items: [{ label: "x", value: 1 }, { label: "x", value: 2 }] }, children: [] },
+    { type: "ticker", props: { items: [{ label: "A", value: "1" }, { label: "A", value: "2" }] }, children: [] },
+  ] } as never} send={vi.fn()} />);
+  expect(error.mock.calls.filter((c) => String(c[0]).includes("same key"))).toEqual([]);
+  error.mockRestore();
+});

@@ -32,7 +32,8 @@ copies with their own state and schedule.
 ## Fetching
 
 `fetch(ctx)` runs on the schedule, but only while some screen shows the instance (or the slot says
-`poll="always"`). Whatever it returns becomes the state and is pushed to every screen. If it
+`poll="always"`). A module with `fetch` and no schedule runs it once, the first time a screen shows
+the instance, to set its starting state. Whatever it returns becomes the state and is pushed to every screen. If it
 raises, the old state stays on screen with an error badge, and the server retries with backoff.
 
 What `ctx` offers:
@@ -62,7 +63,8 @@ iCalendar parser in `modules/calendar/ics.lua` this way.
 ## Drawing with widgets
 
 `view(state, config)` returns a tree of built-in widgets. The browser renders it inside the
-module's frame, so a module with a `view` needs no frontend code at all.
+module's frame, so a module with a `view` needs no frontend code at all. [widgets.md](widgets.md)
+shows every widget with a picture, its Lua and its options.
 
 | Widget | For |
 |---|---|
@@ -76,40 +78,82 @@ module's frame, so a module with a `view` needs no frontend code at all.
 | `ui.clock { tz, style, format, date }` | a clock that ticks in the browser |
 | `ui.group { direction, gap, ... }` | stack any of the above |
 
-## Drawing with a component
+## Components and commands, end to end
 
-When widgets aren't enough, set `component = "Weather"` and export a React component with that
-name from `modules/weather/ui/index.tsx`. It receives:
+`modules/echo` is a complete, small example: a text box that echoes what you type and a Ping
+button that counts pongs. Open the dashboard with `?theme=gallery` to try it.
+
+<img src="images/echo.png" alt="The echo example: a text box, Echo and Ping buttons, a pong count and two echoed messages" width="390">
+
+Four pieces connect it:
+
+**1. `fetch` sets the state.** The server keeps it and sends it to every screen showing the
+instance. With no schedule, it runs once, when the instance is first shown.
+
+```lua
+fetch = function(ctx)
+  return ctx.state or { messages = json.array({}), pings = 0 }
+end,
+```
+
+**2. `component` names the React export that draws it**, instead of a `view`.
+
+```lua
+component = "Echo",   -- the Echo export of modules/echo/ui/index.tsx
+```
+
+**3. The component calls `send`** to run a command. It never changes `state` itself.
+
+```tsx
+export function Echo({ state, send }: CustomProps) {
+  ...
+  await send("echo", { text });   // resolves when the command finishes; rejects with its error
+```
+
+**4. A command returns the new state.** The server stores it and pushes it to every screen, so
+the component re-renders with it, here and on any other screen showing the same instance.
+
+```lua
+commands = {
+  echo = function(ctx, args)
+    local text = type(args.text) == "string" and args.text:match("^%s*(.-)%s*$") or ""
+    if text == "" then error("say something first", 0) end
+    ...
+    return { messages = messages, pings = ctx.state.pings }
+  end,
+  ping = function(ctx)
+    return { messages = json.array(ctx.state.messages), pings = ctx.state.pings + 1 }
+  end,
+},
+```
+
+A few details worth knowing:
+
+- **Errors** a command raises reject `send` with their message. Pass level `0` to `error` so the
+  message doesn't start with Lua's `file:line:`.
+- **Returning nothing** leaves the state alone. Call `ctx.refresh()` instead when the real answer
+  comes from upstream: the Todoist board's `move` and `complete` post to Todoist, then refresh.
+- **Widgets run commands too.** In a `view`, `ui.row { on_tap = cmd("open", { id = 7 }) }` sends
+  `open` when tapped, with no component at all.
+- **Empty lists** need `json.array({})`, or they reach the screen as `{}`.
+
+### What a component receives
 
 ```ts
 type CustomProps = {
-  state: JsonValue | null;          // what fetch returned
+  state: JsonValue | null;          // what fetch or the last command returned
   config: Record<string, JsonValue>;
   status: Status | null;            // ok, error, fetched_at, ...
-  send: (action: string, args?: JsonValue) => Promise<void>;  // runs a command (below)
+  send: (action: string, args?: JsonValue) => Promise<void>;
   title: string;
   density: "compact" | "normal" | "large";
 };
 ```
 
-Components are found at build time and loaded only when a screen shows them. A component owns
-its whole slot, header included; a slot can ask for the standard frame with `chrome="full"`.
-
-## Commands
-
-Commands let the screen act on a module: the Todoist board's drag and Done buttons are commands.
-
-```lua
-commands = {
-  complete = function(ctx, args)
-    ctx.http.post(API .. "/tasks/" .. args.id .. "/close", { headers = auth(ctx) })
-    ctx.refresh()
-  end,
-},
-```
-
-From a widget, `on_tap = cmd("complete", { id = task.id })`. From a component, `send("complete",
-{ id })`. The promise resolves when the command finishes and rejects with its error.
+Components live in `modules/<name>/ui/index.tsx`, are found at build time and load only when a
+screen shows them. A component owns its whole slot, header included; a slot can ask for the
+standard frame with `chrome="full"`. One file can export several components, and a slot picks
+another with `component="TodoistList"`.
 
 ## Hooks
 

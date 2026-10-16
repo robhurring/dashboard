@@ -140,6 +140,7 @@ default theme in the repo, and custom themes and settings kept outside it.
 ## Docs
 
 - [Writing a module](docs/modules.md): state, views, custom components, commands and hooks
+- [Widgets](docs/widgets.md): every built-in widget, with pictures and options
 - [Themes and layout](docs/themes.md): pages, rows, columns and `<Slot>` props
 - [Hooks](docs/hooks.md): pushing data in, auth options, `bin/hook`
 - [Pi kiosk](docs/pi-kiosk.md): turning a Raspberry Pi and a touch display into the wall screen

@@ -12,6 +12,11 @@ describe("WidgetTree", () => {
     expect(screen.getByText("Clouds")).toBeInTheDocument();
   });
 
+  test("renders an icon by its Lucide name", () => {
+    const { container } = render(<WidgetTree node={node("icon", { name: "cloud-sun", size: 24 })} send={vi.fn()} />);
+    expect(container.querySelector('[data-icon="cloud-sun"]')).not.toBeNull();
+  });
+
   test("renders ticker items with direction", () => {
     render(<WidgetTree node={node("ticker", { items: [{ label: "AAPL", value: "231.40", delta: 0.82 }, { label: "NET", value: "118.07", delta: -1.35 }] })} send={vi.fn()} />);
     expect(screen.getByText("AAPL")).toBeInTheDocument();
