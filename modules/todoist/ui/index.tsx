@@ -28,17 +28,17 @@ export type BoardState = { columns: Column[]; total: number; project_id: string;
 const DRAG_DISTANCE_PX = 6;
 const HOLD_TO_DRAG_MS = 250;
 const HOLD_TOLERANCE_PX = 5;
-/** Notes rest flat; the lift (in board.css) adds a little scale and rotation while dragging. */
-const REST_TILT_DEG = 0;
 const BACKLOG_KEY = "backlog";
 const UNDO_WINDOW_MS = 6000;
-/** A completed note shrinks and fades for this long before it leaves the column. Matches note-leave in board.css. */
+/** A completed note shrinks and fades for this long before it leaves the column. */
 const LEAVE_MS = 260;
 /** An optimistic move is kept until a snapshot confirms it, or this long if the refetch never comes. */
 const PENDING_MOVE_MAX_MS = 30_000;
-/** Keep in sync with the note-settle animation in board.css. */
+/** A dropped note glides to its slot and settles its lift for this long. */
 const DROP_MS = 320;
 const DROP_EASING = "cubic-bezier(0.2, 0, 0, 1)";
+/** The timings above, handed to board.css so the CSS animations and the JS timers can't drift apart. */
+const MOTION_VARS = { "--note-leave-ms": `${LEAVE_MS}ms`, "--note-drop-ms": `${DROP_MS}ms`, "--note-drop-easing": DROP_EASING } as CSSProperties;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -59,14 +59,6 @@ function priorityLabel(priority: number): string {
     case 2: return "P3";
     default: return "no priority";
   }
-}
-
-/** A deterministic tilt per task, so notes never jitter between renders. */
-function tiltFor(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const unit = (((h % 1000) + 1000) % 1000) / 1000;
-  return (unit * 2 - 1) * REST_TILT_DEG;
 }
 
 /** "3h ago", "2d ago", "just now". */
@@ -147,7 +139,7 @@ function Note({ item, columnKey, open = false, onDone, className = "" }: NotePro
   const updated = agoText(item.updated_at ?? item.added_at);
   const classes = ["note", due?.late ? "note--late" : "", open ? "note--open" : "", className].filter(Boolean).join(" ");
   return (
-    <div className={classes} data-paper={paperFor(item.priority)} style={{ "--tilt": `${tiltFor(item.id).toFixed(2)}deg` } as CSSProperties}>
+    <div className={classes} data-paper={paperFor(item.priority)}>
       <div className="note-head">
         {item.priority === 4 && <ChevronsUp className="note-flag" size={16} strokeWidth={2.75} aria-label="urgent" />}
         {item.priority === 3 && <ChevronUp className="note-flag" size={16} strokeWidth={2.75} aria-label="important" />}
@@ -221,7 +213,7 @@ function NoteSlot({ item, columnKey, open, draggable, leaving, onTap, onDone }: 
   );
 }
 
-// ─── Shared behaviour: flips, optimistic moves, completes with undo ─────────
+// ─── Shared behaviour: optimistic moves, completes with undo ─────────────────
 
 /** What the toast says: a completion with undo, or why something failed. */
 export type Notice =
@@ -409,7 +401,7 @@ export function TodoistBoard({ state, send }: CustomProps) {
 
   return (
     <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={() => setActive(null)}>
-      <div className="board" ref={boardRef}>
+      <div className="board" ref={boardRef} style={MOTION_VARS}>
         {t.columns.map((col) => (
           <BoardColumn key={col.key} column={col}>
             {col.items.map((item) => (
@@ -419,7 +411,7 @@ export function TodoistBoard({ state, send }: CustomProps) {
         ))}
       </div>
       {createPortal(
-        <DragOverlay dropAnimation={dropAnimation}>{active && <Note item={active.item} columnKey={active.fromKey} className="note--overlay" />}</DragOverlay>,
+        <DragOverlay dropAnimation={dropAnimation} style={MOTION_VARS}>{active && <Note item={active.item} columnKey={active.fromKey} className="note--overlay" />}</DragOverlay>,
         document.body,
       )}
       {t.notice && <NoticeToast notice={t.notice} onUndo={t.undo} onDismiss={() => t.setNotice(null)} />}
@@ -432,13 +424,14 @@ export function TodoistBoard({ state, send }: CustomProps) {
 export function TodoistList({ state, send }: CustomProps) {
   const board = state as BoardState | null;
   const t = useTasks(board, send);
+  // No sensors: the list never drags, but its notes share NoteSlot, which needs a DndContext.
   const sensors = useSensors();
   const listRef = useRef<HTMLDivElement>(null);
   useFlip(listRef, [t.columns, t.leaving]);
   if (!board) return null;
   return (
     <DndContext sensors={sensors}>
-      <div className="task-list" ref={listRef}>
+      <div className="task-list" ref={listRef} style={MOTION_VARS}>
         {t.columns.filter((col) => col.items.length > 0).map((col) => (
           <section key={col.key} className="task-list-section">
             <h3 className="task-list-heading">{col.label} <span className="board-column-count">{col.items.length}</span></h3>
