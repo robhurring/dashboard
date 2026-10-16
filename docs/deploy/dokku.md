@@ -63,7 +63,7 @@ their own variables; set them the same way.
 |---|---|
 | weather | `OPENWEATHERMAP_API_KEY` |
 | stocks | `FINNHUB_API_KEY` |
-| calendar | `GOOGLE_CALENDAR_ICS_URL` (one or more ICS URLs, comma-separated) |
+| calendar | `GOOGLE_CALENDAR_ICS_URL` (one or more ICS URLs, comma-separated), and `CALENDAR_<NAME>` for panels with `feeds="<name>"` |
 | hooks | `HOOKS_TOKEN`: the shared token callers send as `Authorization: Bearer <token>` (or `X-Hook-Token`) to hooks with `auth = { token = "HOOKS_TOKEN" }`, like echo's. Unset means open, which is meant for local development only |
 
 ## Webhooks
