@@ -12,6 +12,21 @@ set -euo pipefail
 # cannot be trusted). bin/pi passes both from your .env.
 DASHBOARD_HOST="${DASHBOARD_HOST:?set DASHBOARD_HOST, e.g. dashboard.example.com}"
 DASHBOARD_IP="${DASHBOARD_IP:-}"
+
+# What kiosk.sh opens, and the display power settings display.sh reads. Values are quoted for the shell
+# (the cron ranges have spaces). `setup.sh settings` writes just this file; bin/pi push uses that.
+write_settings() {
+  mkdir -p "$HOME/.config"
+  {
+    printf 'DASHBOARD_URL=%q\n' "http://$DASHBOARD_HOST"
+    printf 'KIOSK_DIM_WHEN=%q\n' "${KIOSK_DIM_WHEN:-}"
+    printf 'KIOSK_DIM_AFTER=%q\n' "${KIOSK_DIM_AFTER:-10}"
+    printf 'KIOSK_DIM_LEVEL=%q\n' "${KIOSK_DIM_LEVEL:-15}"
+    printf 'KIOSK_SLEEP_WHEN=%q\n' "${KIOSK_SLEEP_WHEN:-}"
+    printf 'KIOSK_SLEEP_AFTER=%q\n' "${KIOSK_SLEEP_AFTER:-5}"
+  } > "$HOME/.config/dashboard-kiosk.env"
+}
+if [[ "${1:-}" == settings ]]; then write_settings; echo "    wrote ~/.config/dashboard-kiosk.env"; exit 0; fi
 SRC_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 step() { printf '\n==> %s\n' "$*"; }
@@ -58,9 +73,7 @@ else
   done
 fi
 
-# Where kiosk.sh points the browser.
-mkdir -p "$HOME/.config"
-echo "DASHBOARD_URL=http://$DASHBOARD_HOST" > "$HOME/.config/dashboard-kiosk.env"
+write_settings
 
 # 3. Desktop autologin ------------------------------------------------------
 step "desktop autologin"
@@ -92,6 +105,7 @@ install_file() {
   fi
 }
 install_file "$SRC_DIR/kiosk.sh"      "$HOME/kiosk.sh"                        0755
+install_file "$SRC_DIR/display.sh"    "$HOME/display.sh"                      0755
 install_file "$SRC_DIR/kiosk.desktop" "$HOME/.config/autostart/kiosk.desktop" 0644
 install_file "$SRC_DIR/kanshi.config" "$HOME/.config/kanshi/config"           0644
 install_file "$SRC_DIR/labwc-rc.xml"  "$HOME/.config/labwc/rc.xml"            0644

@@ -2,21 +2,22 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# DASHBOARD_HOST (and optional DASHBOARD_IP) come from the environment or .env; see .env.example.
+# Settings from the environment, else .env: PI_HOST, DASHBOARD_HOST, DASHBOARD_IP and the KIOSK_* display settings.
+SETTINGS=(PI_HOST DASHBOARD_HOST DASHBOARD_IP KIOSK_DIM_WHEN KIOSK_DIM_AFTER KIOSK_DIM_LEVEL KIOSK_SLEEP_WHEN KIOSK_SLEEP_AFTER)
 if [[ -f .env ]]; then
-  for var in DASHBOARD_HOST DASHBOARD_IP PI_HOST; do
-    [[ -n "${!var:-}" ]] || eval "$(grep -E "^$var=" .env | tail -1 | sed 's/^/export /')"
+  for var in "${SETTINGS[@]}"; do
+    [[ -n "${!var:-}" ]] || eval "$(grep -E "^$var=" .env | tail -1 | sed 's/^/export /' || true)"
   done
 fi
 PI_HOST="${PI_HOST:-}"
 PI_DIR="${PI_DIR:-dashboard-pi}"
 usage() {
   cat <<USAGE
-usage: bin/pi <command>    manage the kiosk Pi over ssh (PI_HOST=$PI_HOST)
+usage: bin/pi <command>    manage the kiosk Pi over ssh (PI_HOST=${PI_HOST:-unset})
   setup     copy pi/ to the Pi and run its idempotent setup.sh
-  push      copy the kiosk config files to their live paths
-  pull      copy the live kiosk config files back into pi/
-  restart   relaunch the kiosk browser without rebooting
+  push      copy the kiosk files and settings to the Pi
+  pull      copy the live kiosk files back into pi/
+  restart   relaunch the kiosk (browser and display power) without rebooting
 USAGE
 }
 
@@ -24,29 +25,39 @@ if [[ -z "$PI_HOST" && "${1:-}" != "" && "${1:-}" != "-h" && "${1:-}" != "--help
   echo "set PI_HOST (in .env or the environment) to the Pi's ssh host, e.g. PI_HOST=admin@dashboard-kiosk.local" >&2
   exit 1
 fi
+
+# NAME=value pairs for the Pi, quoted for its shell.
+remote_env() {
+  local var out=""
+  for var in DASHBOARD_HOST DASHBOARD_IP KIOSK_DIM_WHEN KIOSK_DIM_AFTER KIOSK_DIM_LEVEL KIOSK_SLEEP_WHEN KIOSK_SLEEP_AFTER; do
+    out+="$var=$(printf %q "${!var:-}") "
+  done
+  echo "$out"
+}
+
 case "${1:-}" in
   setup)
+    : "${DASHBOARD_HOST:?set DASHBOARD_HOST in .env (the hostname the kiosk opens)}"
     ssh "$PI_HOST" "mkdir -p ~/$PI_DIR"
     scp -q pi/* "$PI_HOST:~/$PI_DIR/"
-    : "${DASHBOARD_HOST:?set DASHBOARD_HOST in .env (the hostname the kiosk opens)}"
-    ssh "$PI_HOST" "DASHBOARD_HOST=$(printf %q "$DASHBOARD_HOST") DASHBOARD_IP=$(printf %q "${DASHBOARD_IP:-}") bash ~/$PI_DIR/setup.sh" ;;
+    ssh "$PI_HOST" "$(remote_env) bash ~/$PI_DIR/setup.sh" ;;
   push)
-    scp -q pi/kiosk.sh      "$PI_HOST:~/kiosk.sh"
+    : "${DASHBOARD_HOST:?set DASHBOARD_HOST in .env (the hostname the kiosk opens)}"
+    scp -q pi/kiosk.sh pi/display.sh "$PI_HOST:~/"
     scp -q pi/kiosk.desktop "$PI_HOST:~/.config/autostart/kiosk.desktop"
     scp -q pi/kanshi.config "$PI_HOST:~/.config/kanshi/config"
     scp -q pi/labwc-rc.xml  "$PI_HOST:~/.config/labwc/rc.xml"
-    ssh "$PI_HOST" 'chmod +x ~/kiosk.sh'
-    if [[ -n "${DASHBOARD_HOST:-}" ]]; then
-      ssh "$PI_HOST" "mkdir -p ~/.config && echo DASHBOARD_URL=http://$(printf %q "$DASHBOARD_HOST") > ~/.config/dashboard-kiosk.env"
-    fi
-    echo "pushed. run 'bin/pi restart' to relaunch the browser." ;;
+    ssh "$PI_HOST" "mkdir -p ~/$PI_DIR" && scp -q pi/setup.sh "$PI_HOST:~/$PI_DIR/"
+    ssh "$PI_HOST" "chmod +x ~/kiosk.sh ~/display.sh && $(remote_env) bash ~/$PI_DIR/setup.sh settings"
+    echo "pushed. run 'bin/pi restart' to relaunch the kiosk." ;;
   pull)
     scp -q "$PI_HOST:~/kiosk.sh"                        pi/kiosk.sh
+    scp -q "$PI_HOST:~/display.sh"                      pi/display.sh
     scp -q "$PI_HOST:~/.config/autostart/kiosk.desktop" pi/kiosk.desktop
     scp -q "$PI_HOST:~/.config/kanshi/config"           pi/kanshi.config
     scp -q "$PI_HOST:~/.config/labwc/rc.xml"            pi/labwc-rc.xml ;;
   restart)
-    # The [c] keeps pkill from matching this ssh command line.
+    # The [c] keeps pkill from matching this ssh command line. kiosk.sh replaces its own display helpers.
     ssh "$PI_HOST" 'pkill -f "[c]hromium.*--kiosk" || true; sleep 1; WAYLAND_DISPLAY=$(ls /run/user/$(id -u) | grep -m1 "^wayland-[0-9]*$") XDG_RUNTIME_DIR=/run/user/$(id -u) DISPLAY=:0 setsid -f ~/kiosk.sh >/dev/null 2>&1 </dev/null'
     echo "kiosk relaunched." ;;
   -h|--help|"") usage ;;

@@ -21,3 +21,4 @@ if [[ -d web/src/protocol ]] && ! git diff --quiet -- web/src/protocol web/src/s
   exit 1
 fi
 (cd web && npx vitest run)
+bash pi/display.test.sh

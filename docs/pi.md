@@ -57,6 +57,9 @@ DASHBOARD_IP=192.168.1.10              # optional: pin that name to this IP in t
 PI_HOST=pi                             # the Pi's ssh host: an alias, or user@host
 ```
 
+Display power settings (dimming and sleeping on a schedule) also go in `.env`: see
+[Display power](#display-power).
+
 `DASHBOARD_IP` is for when your local DNS doesn't know the dashboard's name, or knows only its
 public address. With it set, the Pi always reaches the dashboard directly on your network.
 
@@ -79,6 +82,30 @@ Setup copies `pi/` to the Pi and runs `pi/setup.sh` there. It:
 After the reboot, Chromium should come up full-screen on the dashboard. If the picture is sideways or
 touches land in the wrong place, see [Other displays](#other-displays).
 
+## Display power
+
+The kiosk can dim its backlight or switch the panel off when nobody is using it. There are two states,
+each active during cron ranges you choose. A touch always brings the screen back to full brightness.
+
+| Setting | Example | |
+|---|---|---|
+| `KIOSK_DIM_WHEN` | `"* 8-18 * * 1-5"` | when idle means dim: here Monday to Friday, 08:00 to 18:59 |
+| `KIOSK_DIM_AFTER` | `10` | idle minutes before dimming |
+| `KIOSK_DIM_LEVEL` | `15` | the dimmed backlight, as a percent of full |
+| `KIOSK_SLEEP_WHEN` | `"* 0-7,19-23 * * 1-5; * * * * 0,6"` | when idle means the panel turns off: here nights, plus all weekend |
+| `KIOSK_SLEEP_AFTER` | `5` | idle minutes before the panel turns off |
+
+Ranges are cron expressions (`minute hour day-of-month month day-of-week`, with `*`, `,`, `-` and `/`;
+Sunday is 0 or 7). Separate several with `;`. Where both states' ranges match, sleep wins; outside both,
+the screen stays bright. Put the settings in `.env` and run `bin/pi push && bin/pi restart`.
+
+Only the display changes. The browser keeps running and stays connected, so the dashboard is current
+the moment the screen wakes. Turning the panel off with its backlight at zero is the Pi's low-power
+state for a display; the Pi itself has no suspend.
+
+Under the hood, `swayidle` tracks idle time in the desktop session and `pi/display.sh` sets the
+backlight (`/sys/class/backlight`) and the panel (`wlopm`).
+
 ## Day to day
 
 | Command | Does |
@@ -97,7 +124,8 @@ The files in `pi/` are the source of truth. Edit them in the repo, then `bin/pi 
 
 | Repo file | Installed at | Purpose |
 |---|---|---|
-| `pi/kiosk.sh` | `~/kiosk.sh` | launches Chromium in kiosk mode on `DASHBOARD_URL` |
+| `pi/kiosk.sh` | `~/kiosk.sh` | launches Chromium in kiosk mode on `DASHBOARD_URL`, plus display power |
+| `pi/display.sh` | `~/display.sh` | dims the backlight or turns the panel off, per the display power settings |
 | `pi/kiosk.desktop` | `~/.config/autostart/kiosk.desktop` | runs `kiosk.sh` when the desktop session starts |
 | `pi/kanshi.config` | `~/.config/kanshi/config` | display layout: which output, its mode and its rotation |
 | `pi/labwc-rc.xml` | `~/.config/labwc/rc.xml` | maps the touchscreen to the display, so touch follows the rotation |
@@ -152,8 +180,8 @@ ssh pi 'cat ~/.config/autostart/kiosk.desktop; cat ~/.config/dashboard-kiosk.env
 
 A missing `dashboard-kiosk.env` means setup hasn't run since the kiosk files changed: run `bin/pi setup`.
 
-**The screen goes black after a while.** Blanking got switched back on. `bin/pi setup` turns it off
-again.
+**The screen goes black after a while.** If it's inside `KIOSK_SLEEP_WHEN`, that's display power doing
+its job: touch it. Otherwise blanking got switched back on, and `bin/pi setup` turns it off again.
 
 **`bin/pi` can't connect, but the Pi is up.** `.local` name lookups can come and go. Use the Pi's IP in
 your ssh config's `HostName`.
