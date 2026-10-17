@@ -54,14 +54,15 @@ async fn http_post_sends_json() {
 }
 
 #[tokio::test]
-async fn http_errors_never_include_the_query_string() {
+async fn http_errors_show_the_host_but_never_the_path_or_query() {
     let base = stub().await;
     let vm = Vm::new().unwrap();
     let err = run(&vm, &context(), &format!(r#"local ctx = ... return ctx.http.get("{base}/fail", {{ query = {{ token = "SECRET-KEY" }} }})"#))
         .await
         .unwrap_err();
     assert!(err.contains("http 500"), "{err}");
-    assert!(err.contains("/fail"), "{err}");
+    assert!(err.contains("127.0.0.1"), "{err}");
+    assert!(!err.contains("/fail"), "{err}");
     assert!(err.contains("upstream exploded"), "{err}");
     assert!(!err.contains("SECRET-KEY"), "{err}");
     let err = run(&vm, &context(), r#"local ctx = ... return ctx.http.get("http://127.0.0.1:1/x?token=SECRET-KEY")"#).await.unwrap_err();
@@ -122,8 +123,12 @@ async fn instant_turns_a_wall_clock_time_in_a_zone_into_epoch_and_host_time() {
 }
 
 #[test]
-fn redaction_strips_query_and_fragment() {
-    assert_eq!(redact_url("https://finnhub.io/api/v1/quote?symbol=X&token=abc#frag"), "https://finnhub.io/api/v1/quote");
+fn redaction_keeps_only_the_scheme_and_host() {
+    // Secrets live in query strings, and in paths too: a private calendar's token is a path segment.
+    assert_eq!(redact_url("https://finnhub.io/api/v1/quote?symbol=X&token=abc#frag"), "https://finnhub.io/…");
+    assert_eq!(redact_url("https://calendar.google.com/calendar/ical/me%40x.com/private-abc123/basic.ics"), "https://calendar.google.com/…");
+    assert_eq!(redact_url("http://127.0.0.1:4000"), "http://127.0.0.1:4000");
+    assert_eq!(redact_url("not a url"), "…");
 }
 
 

@@ -48,9 +48,12 @@ pub fn instant(wall: &str, zone: Option<&str>) -> Result<(i64, String), String> 
     Ok((at.timestamp(), local.to_rfc3339_opts(chrono::SecondsFormat::Secs, false)))
 }
 
-/// A URL safe to show on screens: no query string or fragment, which is where API keys live.
+/// A URL safe for logs and screens: just the scheme and host. API keys live in query strings, and
+/// private feeds put their tokens in the path, so neither is ever shown.
 pub fn redact_url(url: &str) -> String {
-    url.split(['?', '#']).next().unwrap_or(url).to_string()
+    let Some((scheme, rest)) = url.split_once("://") else { return "…".into() };
+    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
+    if rest.len() > host.len() { format!("{scheme}://{host}/…") } else { format!("{scheme}://{host}") }
 }
 
 pub fn build_ctx(lua: &Lua, cc: &CallContext) -> mlua::Result<Table> {
