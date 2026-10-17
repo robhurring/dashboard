@@ -13,6 +13,9 @@ async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
         async move {
             assert_eq!(headers["authorization"], "Bearer or-test-key");
             seen.lock().unwrap().push(body.clone());
+            if body["modalities"] == json!(["image", "text"]) {
+                return (StatusCode::OK, Json(json!({ "choices": [{ "message": { "role": "assistant", "content": "Here you go", "images": [{ "type": "image_url", "image_url": { "url": "data:image/png;base64,iVBORw0KGgo=" } }] } }] })));
+            }
             match body["model"].as_str() {
                 Some("broken/model") => (StatusCode::BAD_REQUEST, Json(json!({ "error": { "message": "no such model" } }))),
                 Some("empty/model") => (StatusCode::OK, Json(json!({ "error": { "message": "provider overloaded" } }))),
@@ -26,6 +29,12 @@ async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
         assert_eq!(body["state"]["subject"], "Invoice overdue");
         assert_eq!(body["questions"]["urgent"]["type"], "noul");
         Json(json!({ "answers": { "urgent": { "type": "noul", "noul": 0.93 }, "team": { "type": "choice", "choice": "billing", "confidence": 0.8, "probabilities": { "billing": 0.9, "support": 0.1 } } }, "model": "typesafe/jev-1.13-20260917", "usage": { "cost": 0.00002 } }))
+    }))
+    .route("/api/v1/audio/speech", post(|Json(body): Json<Value>| async move {
+        assert_eq!(body["input"], "Good morning");
+        assert_eq!(body["model"], "mistralai/voxtral-mini-tts-2603");
+        assert_eq!(body["response_format"], "mp3");
+        ([("content-type", "audio/mpeg")], vec![0x49u8, 0x44, 0x33, 0x04, 0x00])
     }))
     .route("/api/v1/embeddings", post(|Json(body): Json<Value>| async move {
         assert_eq!(body["model"], "openai/text-embedding-3-small");
@@ -99,6 +108,19 @@ async fn ask_and_chat_through_openrouter() {
           end }"#).await;
     assert_eq!(outcome, FetchOutcome::Updated);
     assert_eq!(state, json!({ "urgent": 0.93, "team": "billing", "model": "typesafe/jev-1.13-20260917", "dims": 3 }));
+
+    // Speech and images come back as { data = <base64>, type }, ready for ui.audio and ui.image.
+    let (outcome, state) = run(r#"
+        local openrouter = require("openrouter")
+        return { name = "brief", view = function() return ui.stat {} end,
+          fetch = function(ctx)
+            local clip = openrouter.speak(ctx, "Good morning")
+            local picture = openrouter.image(ctx, "A watercolor garden")
+            return { audio = clip, image = picture }
+          end }"#).await;
+    assert_eq!(outcome, FetchOutcome::Updated);
+    assert_eq!(state["audio"], json!({ "data": "SUQzBAA=", "type": "audio/mpeg" }));
+    assert_eq!(state["image"], json!({ "data": "iVBORw0KGgo=", "type": "image/png" }));
 
     for (model, expected) in [("broken/model", "http 400"), ("empty/model", "provider overloaded")] {
         let (outcome, _) = run(&format!(r#"

@@ -8,7 +8,7 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?theme=gallery` to see every widget live.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
@@ -185,6 +185,45 @@ bin/deploy prod
 |---|---|
 | `text` | markdown, GitHub-flavoured |
 | `links` | `false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab) |
+
+## ui.image
+
+An image, inline as base64 (`data`) or from a URL (`src`). Pairs with openrouter.image() for generated pictures.
+
+<img src="images/widgets/image.png" alt="ui.image" width="270">
+
+```lua
+local picture = openrouter.image(ctx, "A watercolor of the garden at dawn")  -- in fetch
+
+ui.image { data = state.picture.data, type = state.picture.type, alt = "The garden at dawn" }
+-- or: ui.image { src = "https://example.com/garden.jpg", alt = "The garden" }
+```
+
+| Option | |
+|---|---|
+| `data`, `type` | base64 image data and its type (default image/png); a full data: URL works too |
+| `src` | an image URL, instead of data |
+| `alt` | what the image shows |
+| `fit` | `contain` (default) or `cover` |
+
+## ui.audio
+
+A clip with a play button, inline as base64 or from a URL. With autoplay, each new clip plays as it arrives: an announcement.
+
+<img src="images/widgets/audio.png" alt="ui.audio" width="270">
+
+```lua
+local clip = openrouter.speak(ctx, "Your 3pm is in ten minutes")  -- in fetch
+
+ui.audio { data = state.clip.data, type = state.clip.type, label = "Next meeting", autoplay = true }
+```
+
+| Option | |
+|---|---|
+| `data`, `type` | base64 audio and its type (default audio/mpeg); a full data: URL works too |
+| `src` | an audio URL, instead of data |
+| `label` | shown beside the button |
+| `autoplay` | `true` plays each new clip as it arrives (not the one already there when the page loads) |
 
 ## ui.badge
 

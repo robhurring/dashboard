@@ -109,9 +109,15 @@ export function Gauge({ value = 0, max = 100, unit, label, sub, icon, warn_at, b
 
 type LineProps = { points?: number[]; label?: string; unit?: string; min?: number; max?: number; tone?: Tone; height?: number | "fill" };
 
+/** Chart rows for a series. A single point becomes a flat line, so a fresh series shows a line, not a dot. */
+export function lineData(points: number[]): { i: number; v: number }[] {
+  const data = points.map((v, i) => ({ i, v }));
+  return data.length === 1 ? [data[0], { i: 1, v: data[0].v }] : data;
+}
+
 /** A sparkline-style area chart over a plain series of numbers; the latest value is shown as text. */
 export function Line({ points = [], label, unit, min, max, tone = "accent", height = 3.5 }: LineProps) {
-  const data = points.map((v, i) => ({ i, v }));
+  const data = lineData(points);
   const last = points.at(-1);
   const color = TONE_VAR[tone];
   const id = `line-fill-${tone}`;

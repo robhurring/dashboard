@@ -4,6 +4,7 @@
  * them and writes docs/widgets.md from this file, so the docs, the images and the code can't disagree.
  */
 import type { WidgetNode } from "../../src/data/reduce";
+import { SAMPLE_PNG, SAMPLE_WAV } from "./media.ts";
 
 export type Example = {
   name: string;
@@ -137,6 +138,27 @@ export const EXAMPLES: Example[] = [
     options: [["text", "markdown, GitHub-flavoured"], ["links", "`false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab)"]],
     width: 520,
     height: 430,
+  },
+  {
+    name: "image",
+    summary: "An image, inline as base64 (`data`) or from a URL (`src`). Pairs with openrouter.image() for generated pictures.",
+    lua: `local picture = openrouter.image(ctx, "A watercolor of the garden at dawn")  -- in fetch
+
+ui.image { data = state.picture.data, type = state.picture.type, alt = "The garden at dawn" }
+-- or: ui.image { src = "https://example.com/garden.jpg", alt = "The garden" }`,
+    node: w("image", { data: SAMPLE_PNG, type: "image/png", alt: "The garden at dawn", fit: "cover" }),
+    options: [["data, type", "base64 image data and its type (default image/png); a full data: URL works too"], ["src", "an image URL, instead of data"], ["alt", "what the image shows"], ["fit", "`contain` (default) or `cover`"]],
+    height: 260,
+  },
+  {
+    name: "audio",
+    summary: "A clip with a play button, inline as base64 or from a URL. With autoplay, each new clip plays as it arrives: an announcement.",
+    lua: `local clip = openrouter.speak(ctx, "Your 3pm is in ten minutes")  -- in fetch
+
+ui.audio { data = state.clip.data, type = state.clip.type, label = "Next meeting", autoplay = true }`,
+    node: w("audio", { data: SAMPLE_WAV, type: "audio/wav", label: "Next meeting" }),
+    options: [["data, type", "base64 audio and its type (default audio/mpeg); a full data: URL works too"], ["src", "an audio URL, instead of data"], ["label", "shown beside the button"], ["autoplay", "`true` plays each new clip as it arrives (not the one already there when the page loads)"]],
+    height: 140,
   },
   {
     name: "badge",

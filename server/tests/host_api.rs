@@ -9,7 +9,8 @@ async fn stub() -> String {
         .route("/echo", get(|Query(q): Query<HashMap<String, String>>| async move { Json(json!(q)) }))
         .route("/echo", post(|Json(body): Json<Value>| async move { Json(body) }))
         .route("/text", get(|| async { "hello" }))
-        .route("/fail", get(|| async { (StatusCode::INTERNAL_SERVER_ERROR, "upstream exploded") }));
+        .route("/fail", get(|| async { (StatusCode::INTERNAL_SERVER_ERROR, "upstream exploded") }))
+        .route("/sound", post(|| async { ([("content-type", "audio/mpeg")], vec![0xffu8, 0xfb, 0x90, 0x00, 0x80, 0x7f]) }));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
@@ -154,4 +155,18 @@ async fn redis_info_raises_without_redis_and_reports_with_it() {
     cc.persist = Some(dashboard::persist::Persist::redis(&url, "test:").await.unwrap());
     let v = run(&vm, &cc, r#"local ctx = ... local i = ctx.redis.info() return { ok = i.used_mb > 0 and i.keys >= 0 and #i.version > 0 }"#).await.unwrap();
     assert_eq!(v, Some(json!({ "ok": true })));
+}
+
+#[tokio::test]
+async fn binary_responses_come_back_as_base64_with_their_type() {
+    let base = stub().await;
+    let vm = Vm::new().unwrap();
+    let v = run(&vm, &context(), &format!(r#"local ctx = ... return ctx.http.post("{base}/sound", {{ json = {{ input = "hi" }}, as = "base64" }})"#))
+        .await.unwrap().unwrap();
+    assert_eq!(v["type"], "audio/mpeg");
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(v["data"].as_str().unwrap()).unwrap();
+    assert_eq!(bytes, vec![0xff, 0xfb, 0x90, 0x00, 0x80, 0x7f]);
+    let err = run(&vm, &context(), &format!(r#"local ctx = ... return ctx.http.get("{base}/text", {{ as = "pdf" }})"#)).await.unwrap_err();
+    assert!(err.contains("as"), "{err}");
 }

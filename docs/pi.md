@@ -137,6 +137,8 @@ Chromium flags in `kiosk.sh` worth knowing:
 - `--unsafely-treat-insecure-origin-as-secure=<url>`: the dashboard is usually plain HTTP on the
   LAN, and this keeps browser features working that would otherwise need HTTPS.
 - `--password-store=basic`: no keyring prompt on first launch.
+- `--autoplay-policy=no-user-gesture-required`: panels can play announcements (`ui.audio` with
+  `autoplay`) without a tap first. The Pi needs a speaker for them: a USB or Bluetooth one, or HDMI audio.
 
 ## Other displays
 

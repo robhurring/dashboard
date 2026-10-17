@@ -125,6 +125,7 @@ function json.array(t) end
 ---@field json json|nil        -- request body, JSON-encoded
 ---@field body string|nil      -- raw request body
 ---@field timeout number|nil   -- seconds
+---@field as "base64"|nil       -- return { data = <base64>, type = <content type> } instead of text: audio, images
 
 ---@class Http
 local Http = {}

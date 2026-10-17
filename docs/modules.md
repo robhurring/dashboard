@@ -108,6 +108,25 @@ Question types: `noul` (yes or no, answered as a probability), `choice` (one of 
 region, answered as `top`, `bottom`, `left`, `right`). The default model is `jev-latest`; pass `model`
 to pin a version such as `typesafe/jev-1.13`.
 
+`openrouter.speak(ctx, text, opts)` turns text into speech and `openrouter.image(ctx, prompt, opts)`
+generates a picture. Both return `{ data = <base64>, type }`, which goes straight into the
+[`ui.audio`](widgets.md#uiaudio) and [`ui.image`](widgets.md#uiimage) widgets, so nothing is stored
+anywhere but the panel's state. With `autoplay = true`, a panel announces each new clip as it arrives:
+
+```lua
+fetch = function(ctx)
+  local next = upcoming_meeting(ctx)
+  return { next = next, clip = openrouter.speak(ctx, next.title .. " starts in ten minutes") }
+end,
+view = function(state)
+  return ui.audio { data = state.clip.data, type = state.clip.type, label = state.next.title, autoplay = true }
+end,
+```
+
+Speech defaults to `OPENROUTER_TTS_MODEL`, else `mistralai/voxtral-mini-tts-2603`; images to
+`OPENROUTER_IMAGE_MODEL`, else `google/gemini-2.5-flash-image`. OpenRouter needs credit on the account
+for both. Any `ctx.http` call can take binary responses the same way, with `as = "base64"`.
+
 `openrouter.request(ctx, path, body)` posts to any other endpoint (`/responses`, `/messages`,
 `/embeddings`, ...) and returns the decoded response.
 

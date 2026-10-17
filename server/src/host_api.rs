@@ -157,10 +157,17 @@ struct Request {
     json: Option<Value>,
     body: Option<String>,
     timeout: Option<Duration>,
+    /// `as = "base64"`: return the body as `{ data = <base64>, type = <content type> }`, for binary
+    /// responses like audio and images.
+    as_base64: bool,
 }
 
+/// The largest binary response a module may take in, before base64: images and speech fit easily,
+/// and the module's sandbox (32 MB) keeps room to work with it.
+const MAX_BINARY_BYTES: usize = 8 * 1024 * 1024;
+
 fn read_opts(lua: &Lua, url: String, opts: Option<Table>) -> mlua::Result<Request> {
-    let mut r = Request { url, query: Vec::new(), headers: Vec::new(), json: None, body: None, timeout: None };
+    let mut r = Request { url, query: Vec::new(), headers: Vec::new(), json: None, body: None, timeout: None, as_base64: false };
     let Some(opts) = opts else { return Ok(r) };
     if let Some(q) = opts.get::<Option<Table>>("query")? {
         for pair in q.pairs::<String, LuaValue>() {
@@ -178,6 +185,11 @@ fn read_opts(lua: &Lua, url: String, opts: Option<Table>) -> mlua::Result<Reques
     }
     r.body = opts.get::<Option<String>>("body")?;
     r.timeout = opts.get::<Option<f64>>("timeout")?.map(Duration::from_secs_f64);
+    r.as_base64 = match opts.get::<Option<String>>("as")?.as_deref() {
+        None => false,
+        Some("base64") => true,
+        Some(other) => return Err(mlua::Error::runtime(format!("http: `as` can only be \"base64\", got {other:?}"))),
+    };
     Ok(r)
 }
 
@@ -221,6 +233,23 @@ fn http_fn(lua: &Lua, client: Client, method: Method) -> mlua::Result<Function> 
             })?;
             let status = res.status();
             tracing::info!(url = %shown, status = status.as_u16(), ms = started.elapsed().as_millis(), "upstream request");
+            let content_type = res
+                .headers()
+                .get(reqwest::header::CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or("application/octet-stream")
+                .to_string();
+            if req.as_base64 && status.is_success() {
+                let bytes = res.bytes().await.map_err(|e| mlua::Error::runtime(format!("http {shown}: {}", e.without_url())))?;
+                if bytes.len() > MAX_BINARY_BYTES {
+                    return Err(mlua::Error::runtime(format!("http {shown}: response is {} bytes; the limit is {MAX_BINARY_BYTES}", bytes.len())));
+                }
+                use base64::Engine;
+                let t = lua.create_table()?;
+                t.set("data", base64::engine::general_purpose::STANDARD.encode(&bytes))?;
+                t.set("type", content_type.split(';').next().unwrap_or("").trim())?;
+                return Ok(LuaValue::Table(t));
+            }
             let is_json = res
                 .headers()
                 .get(reqwest::header::CONTENT_TYPE)

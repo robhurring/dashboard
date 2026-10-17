@@ -38,5 +38,6 @@ chromium \
 	--disable-restore-session-state \
 	--password-store=basic \
 	--touch-events=enabled \
+	--autoplay-policy=no-user-gesture-required \
 	--unsafely-treat-insecure-origin-as-secure="$DASHBOARD_URL" \
 	"$DASHBOARD_URL"

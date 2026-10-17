@@ -4,6 +4,8 @@
 --   local openrouter = require("openrouter")
 --   local text = openrouter.ask(ctx, "Summarize: " .. notes, { model = "anthropic/claude-sonnet-4.5", system = "Be brief." })
 --   local answers = openrouter.decide(ctx, { state = ticket, questions = { urgent = { type = "noul", ... } } })
+--   local clip = openrouter.speak(ctx, "Your 3pm is in ten minutes")       -- { data, type } for ui.audio
+--   local picture = openrouter.image(ctx, "A watercolor of the garden")   -- { data, type } for ui.image
 --   local raw = openrouter.request(ctx, "/embeddings", { model = "...", input = "..." })   -- any other endpoint
 --
 -- Needs OPENROUTER_API_KEY in the environment. Model names are OpenRouter's (https://openrouter.ai/models);
@@ -77,6 +79,56 @@ function M.decide(ctx, request)
   local response = M.request(ctx, SITE .. "/api/alpha/decisions", with_model(request, "jev-latest"))
   if type(response.answers) ~= "table" then error("openrouter: the response had no answers", 0) end
   return response.answers, response
+end
+
+local function setting(ctx, name, fallback)
+  local ok, value = pcall(ctx.env, name)
+  return ok and value or fallback
+end
+
+--- Text to speech. Returns { data = <base64>, type = "audio/mpeg" }, ready for ui.audio:
+---   ui.audio { data = clip.data, type = clip.type, label = "Briefing", autoplay = true }
+--- opts: model (default OPENROUTER_TTS_MODEL, else "mistralai/voxtral-mini-tts-2603"), voice,
+--- instructions (tone and pacing, for models that take them), speed, response_format (default "mp3").
+---@param ctx Ctx
+---@param text string
+---@param opts table|nil
+---@return { data: string, type: string }
+function M.speak(ctx, text, opts)
+  opts = opts or {}
+  local model = opts.model or setting(ctx, "OPENROUTER_TTS_MODEL", "mistralai/voxtral-mini-tts-2603")
+  local body = { input = text, model = model, response_format = opts.response_format or "mp3" }
+  for k, v in pairs(opts) do if body[k] == nil then body[k] = v end end
+  -- The default model needs a voice; other models choose their own when none is given.
+  if body.voice == nil and model == "mistralai/voxtral-mini-tts-2603" then body.voice = "en_paul_neutral" end
+  return ctx.http.post(API .. "/audio/speech", {
+    json = body,
+    as = "base64",
+    headers = { Authorization = "Bearer " .. ctx.env("OPENROUTER_API_KEY"), ["X-Title"] = "dashboard" },
+  })
+end
+
+--- Text to image. Returns { data = <base64>, type = "image/png" }, ready for ui.image:
+---   ui.image { data = picture.data, type = picture.type, alt = prompt }
+--- opts: model (default OPENROUTER_IMAGE_MODEL, else "google/gemini-2.5-flash-image"), and any chat
+--- request options (image_config, ...).
+---@param ctx Ctx
+---@param prompt string
+---@param opts table|nil
+---@return { data: string, type: string }
+function M.image(ctx, prompt, opts)
+  opts = opts or {}
+  local request = { modalities = { "image", "text" }, messages = { { role = "user", content = prompt } } }
+  for k, v in pairs(opts) do request[k] = v end
+  request.model = opts.model or setting(ctx, "OPENROUTER_IMAGE_MODEL", "google/gemini-2.5-flash-image")
+  local response = M.request(ctx, "/chat/completions", request)
+  local message = response.choices and response.choices[1] and response.choices[1].message or {}
+  local image = message.images and message.images[1]
+  local url = image and image.image_url and image.image_url.url
+  if type(url) ~= "string" then error("openrouter: the response had no image", 0) end
+  local mime, data = url:match("^data:([^;]+);base64,(.+)$")
+  if not data then error("openrouter: the image wasn't inline base64", 0) end
+  return { data = data, type = mime }
 end
 
 --- Asks one question and returns the answer's text, trimmed.

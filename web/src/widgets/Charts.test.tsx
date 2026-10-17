@@ -75,3 +75,10 @@ test("items may repeat a label (two Tuesdays) without React key collisions", () 
   expect(error.mock.calls.filter((c) => String(c[0]).includes("same key"))).toEqual([]);
   error.mockRestore();
 });
+
+test("a line with one point draws flat across instead of a lone dot", async () => {
+  const { lineData } = await import("./Charts");
+  expect(lineData([42])).toEqual([{ i: 0, v: 42 }, { i: 1, v: 42 }]);
+  expect(lineData([1, 2])).toEqual([{ i: 0, v: 1 }, { i: 1, v: 2 }]);
+  expect(lineData([])).toEqual([]);
+});
