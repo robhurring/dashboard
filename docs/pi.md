@@ -11,9 +11,10 @@ The dashboard itself runs elsewhere (a server, a homelab box, a Dokku host); the
 
 | Part | Tested with | Notes |
 |---|---|---|
-| Board | Raspberry Pi 3 Model B+ | Any Pi that runs the desktop image works; a Pi 4 or 5 is snappier. |
+| Board | Raspberry Pi 5 (and earlier, a 3 Model B+) | Any Pi that runs the desktop image works; a 4 or 5 is snappier. |
 | Display | Raspberry Pi Touch Display 2, 7" | A portrait panel (720x1280 on `DSI-1`) turned landscape. Other displays: see [Other displays](#other-displays). |
-| Power | the official 5V 2.5A supply | A weak supply or long cable throttles the CPU and makes touch laggy. |
+| Power | the official supply for the board (27 W USB-C for a Pi 5) | A weak supply or long cable throttles the CPU and makes touch laggy. |
+| Sound | optional: a USB or Bluetooth speaker, or a USB speakerphone | Only for announcements (`ui.audio` with `autoplay`). A Pi 5 has no headphone jack; earlier models do. |
 | SD card | 16 GB or more | |
 
 No keyboard or mouse is needed once it's set up.
