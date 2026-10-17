@@ -19,6 +19,17 @@ async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
                 _ => (StatusCode::OK, Json(json!({ "choices": [{ "message": { "role": "assistant", "content": "  Three meetings, then gym.  " } }], "usage": { "total_tokens": 42 } }))),
             }
         }
+    }))
+    .route("/api/alpha/decisions", post(|headers: HeaderMap, Json(body): Json<Value>| async move {
+        assert_eq!(headers["authorization"], "Bearer or-test-key");
+        assert_eq!(body["model"], "jev-latest");
+        assert_eq!(body["state"]["subject"], "Invoice overdue");
+        assert_eq!(body["questions"]["urgent"]["type"], "noul");
+        Json(json!({ "answers": { "urgent": { "type": "noul", "noul": 0.93 }, "team": { "type": "choice", "choice": "billing", "confidence": 0.8, "probabilities": { "billing": 0.9, "support": 0.1 } } }, "model": "typesafe/jev-1.13-20260917", "usage": { "cost": 0.00002 } }))
+    }))
+    .route("/api/v1/embeddings", post(|Json(body): Json<Value>| async move {
+        assert_eq!(body["model"], "openai/text-embedding-3-small");
+        Json(json!({ "data": [{ "embedding": [0.1, 0.2, 0.3] }] }))
     }));
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
@@ -70,6 +81,24 @@ async fn ask_and_chat_through_openrouter() {
     assert_eq!(first["model"], "anthropic/claude-sonnet-4.5");
     assert_eq!(first["max_tokens"], 100);
     assert_eq!(first["messages"], json!([{ "role": "system", "content": "Be brief." }, { "role": "user", "content": "Summarize my day" }]));
+
+    // Jev through the Decisions endpoint, and any other endpoint through request().
+    let (outcome, state) = run(r#"
+        local openrouter = require("openrouter")
+        return { name = "brief", view = function() return ui.stat {} end,
+          fetch = function(ctx)
+            local answers, response = openrouter.decide(ctx, {
+              state = { subject = "Invoice overdue", from = "billing@example.com" },
+              questions = {
+                urgent = { type = "noul", instructions = "Does this need a reply today?", criteria = { ["true"] = "yes", ["false"] = "no" } },
+                team = { type = "choice", instructions = "Who handles it?", criteria = { billing = "money", support = "help" } },
+              },
+            })
+            local embedded = openrouter.request(ctx, "/embeddings", { model = "openai/text-embedding-3-small", input = "hello" })
+            return { urgent = answers.urgent.noul, team = answers.team.choice, model = response.model, dims = #embedded.data[1].embedding }
+          end }"#).await;
+    assert_eq!(outcome, FetchOutcome::Updated);
+    assert_eq!(state, json!({ "urgent": 0.93, "team": "billing", "model": "typesafe/jev-1.13-20260917", "dims": 3 }));
 
     for (model, expected) in [("broken/model", "http 400"), ("empty/model", "provider overloaded")] {
         let (outcome, _) = run(&format!(r#"

@@ -83,10 +83,35 @@ end,
 ```
 
 `openrouter.ask(ctx, prompt, opts)` returns the answer as text. `opts` takes `model`, `system` and any
-of OpenRouter's request options. `openrouter.chat(ctx, request)` sends a full request (`model`,
-`messages`, `tools`, `response_format`, ...) and returns the whole response. Without a `model`, the
-library uses `OPENROUTER_MODEL`, else OpenRouter's automatic choice. Both raise on errors, which
-leaves the panel's last good state on screen.
+of OpenRouter's request options. `openrouter.chat(ctx, request)` sends a full chat request (`model`,
+`messages`, `tools`, `response_format`, ...) and returns the whole response. Without a `model`, both use
+`OPENROUTER_MODEL`, else OpenRouter's automatic choice.
+
+`openrouter.decide(ctx, { state, questions })` asks a decision model, [Jev](https://openrouter.ai/docs/api/api-reference/alphadecisions/submit-a-decisions-request)
+by default, typed questions about some state, and returns the answers by name:
+
+```lua
+local answers = openrouter.decide(ctx, {
+  state = { subject = msg.subject, from = msg.from },
+  questions = {
+    urgent = { type = "noul", instructions = "Does this need a reply today?",
+               criteria = { ["true"] = "A deadline or a person waiting", ["false"] = "FYI or a newsletter" } },
+    kind   = { type = "choice", instructions = "What kind of message is it?",
+               criteria = { billing = "Money and invoices", work = "Work projects", social = "Friends and family" } },
+  },
+})
+-- answers.urgent.noul is 0..1; answers.kind.choice is "billing", with .confidence and .probabilities
+```
+
+Question types: `noul` (yes or no, answered as a probability), `choice` (one of named options),
+`score` (`criteria` ordered lowest to highest; answered as a score with probabilities) and `box` (a
+region, answered as `top`, `bottom`, `left`, `right`). The default model is `jev-latest`; pass `model`
+to pin a version such as `typesafe/jev-1.13`.
+
+`openrouter.request(ctx, path, body)` posts to any other endpoint (`/responses`, `/messages`,
+`/embeddings`, ...) and returns the decoded response.
+
+All of them raise on errors, which leaves the panel's last good state on screen.
 
 ## Drawing with widgets
 

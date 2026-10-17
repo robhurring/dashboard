@@ -107,7 +107,8 @@ async fn a_module_can_require_its_own_sibling_files() {
     std::fs::write(dir.path().join("cal/ics.lua"), r#"local util = require("util") return { double = function(x) return x * 2 end, nested = function() return util.name end }"#).unwrap();
     std::fs::write(dir.path().join("cal/util.lua"), r#"return { name = "util" }"#).unwrap();
     let def = ModuleDef::load(&path).await.unwrap();
-    assert_eq!(def.libs.keys().cloned().collect::<Vec<_>>(), vec!["ics", "util"]);
+    // Its own files are there (shared libraries set by another test in this binary may be too).
+    assert!(def.libs.contains_key("ics") && def.libs.contains_key("util"), "{:?}", def.libs.keys());
 
     // The instance VM gets the same files: fetch runs code from both.
     let hub = dashboard::hub::Hub::new(dashboard::persist::Persist::memory()).await.unwrap();
