@@ -130,7 +130,10 @@ for both. Any `ctx.http` call can take binary responses the same way, with `as =
 `openrouter.request(ctx, path, body)` posts to any other endpoint (`/responses`, `/messages`,
 `/embeddings`, ...) and returns the decoded response.
 
-All of them raise on errors, which leaves the panel's last good state on screen.
+All of them raise on errors, which leaves the panel's last good state on screen. Every request
+identifies the app to OpenRouter: `OPENROUTER_APP_NAME` names it (default `dashboard`) and
+`OPENROUTER_APP_URL` identifies it (default this project's repo), which is how its usage shows up in
+OpenRouter's analytics.
 
 ## Drawing with widgets
 

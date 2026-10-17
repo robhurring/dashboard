@@ -8,7 +8,9 @@
 --   local picture = openrouter.image(ctx, "A watercolor of the garden")   -- { data, type } for ui.image
 --   local raw = openrouter.request(ctx, "/embeddings", { model = "...", input = "..." })   -- any other endpoint
 --
--- Needs OPENROUTER_API_KEY in the environment. Model names are OpenRouter's (https://openrouter.ai/models);
+-- Needs OPENROUTER_API_KEY in the environment. Requests identify the app to OpenRouter as
+-- OPENROUTER_APP_NAME (default "dashboard") at OPENROUTER_APP_URL (default this project's repo), which
+-- is how its usage shows up in OpenRouter's app pages and rankings. Model names are OpenRouter's (https://openrouter.ai/models);
 -- without one it uses OPENROUTER_MODEL if set, else "openrouter/auto", which picks a model per request.
 -- Model calls can take a while; a module's fetch is allowed minutes.
 
@@ -16,6 +18,20 @@ local SITE = "https://openrouter.ai"
 local API = SITE .. "/api/v1"
 
 local M = {}
+
+local function setting(ctx, name, fallback)
+  local ok, value = pcall(ctx.env, name)
+  return ok and value or fallback
+end
+
+-- Auth plus app attribution: HTTP-Referer identifies the app, X-OpenRouter-Title names it.
+local function headers(ctx)
+  return {
+    Authorization = "Bearer " .. ctx.env("OPENROUTER_API_KEY"),
+    ["HTTP-Referer"] = setting(ctx, "OPENROUTER_APP_URL", "https://github.com/robhurring/dashboard"),
+    ["X-OpenRouter-Title"] = setting(ctx, "OPENROUTER_APP_NAME", "dashboard"),
+  }
+end
 
 local function default_model(ctx)
   local ok, model = pcall(ctx.env, "OPENROUTER_MODEL")
@@ -33,10 +49,7 @@ function M.request(ctx, path, body)
   local url = path:match("^https?://") and path or (API .. path)
   local response = ctx.http.post(url, {
     json = body,
-    headers = {
-      Authorization = "Bearer " .. ctx.env("OPENROUTER_API_KEY"),
-      ["X-Title"] = "dashboard",
-    },
+    headers = headers(ctx),
   })
   if type(response) ~= "table" then error("openrouter: unexpected response", 0) end
   if response.error then
@@ -81,11 +94,6 @@ function M.decide(ctx, request)
   return response.answers, response
 end
 
-local function setting(ctx, name, fallback)
-  local ok, value = pcall(ctx.env, name)
-  return ok and value or fallback
-end
-
 --- Text to speech. Returns { data = <base64>, type = "audio/mpeg" }, ready for ui.audio:
 ---   ui.audio { data = clip.data, type = clip.type, label = "Briefing", autoplay = true }
 --- opts: model (default OPENROUTER_TTS_MODEL, else "mistralai/voxtral-mini-tts-2603"), voice,
@@ -104,7 +112,7 @@ function M.speak(ctx, text, opts)
   return ctx.http.post(API .. "/audio/speech", {
     json = body,
     as = "base64",
-    headers = { Authorization = "Bearer " .. ctx.env("OPENROUTER_API_KEY"), ["X-Title"] = "dashboard" },
+    headers = headers(ctx),
   })
 end
 

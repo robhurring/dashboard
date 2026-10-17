@@ -12,6 +12,10 @@ async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
         let seen = seen.clone();
         async move {
             assert_eq!(headers["authorization"], "Bearer or-test-key");
+            // Identifies the app to OpenRouter: defaults unless the environment says otherwise.
+            let title = headers["x-openrouter-title"].to_str().unwrap();
+            let referer = headers["http-referer"].to_str().unwrap();
+            assert!((title, referer) == ("dashboard", "https://github.com/robhurring/dashboard") || (title, referer) == ("Kitchen screen", "https://kitchen.example.com"), "{title} {referer}");
             seen.lock().unwrap().push(body.clone());
             if body["modalities"] == json!(["image", "text"]) {
                 return (StatusCode::OK, Json(json!({ "choices": [{ "message": { "role": "assistant", "content": "Here you go", "images": [{ "type": "image_url", "image_url": { "url": "data:image/png;base64,iVBORw0KGgo=" } }] } }] })));
@@ -26,11 +30,16 @@ async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
     .route("/api/alpha/decisions", post(|headers: HeaderMap, Json(body): Json<Value>| async move {
         assert_eq!(headers["authorization"], "Bearer or-test-key");
         assert_eq!(body["model"], "jev-latest");
+        assert_eq!(headers["x-openrouter-title"], "dashboard");
+        assert_eq!(headers["http-referer"], "https://github.com/robhurring/dashboard");
         assert_eq!(body["state"]["subject"], "Invoice overdue");
         assert_eq!(body["questions"]["urgent"]["type"], "noul");
         Json(json!({ "answers": { "urgent": { "type": "noul", "noul": 0.93 }, "team": { "type": "choice", "choice": "billing", "confidence": 0.8, "probabilities": { "billing": 0.9, "support": 0.1 } } }, "model": "typesafe/jev-1.13-20260917", "usage": { "cost": 0.00002 } }))
     }))
-    .route("/api/v1/audio/speech", post(|Json(body): Json<Value>| async move {
+    .route("/api/v1/audio/speech", post(|headers: HeaderMap, Json(body): Json<Value>| async move {
+        // Set by the test before this call: a deployment can name itself.
+        assert_eq!(headers["x-openrouter-title"], "Kitchen screen");
+        assert_eq!(headers["http-referer"], "https://kitchen.example.com");
         assert_eq!(body["input"], "Good morning");
         assert_eq!(body["model"], "mistralai/voxtral-mini-tts-2603");
         assert_eq!(body["response_format"], "mp3");
@@ -110,6 +119,11 @@ async fn ask_and_chat_through_openrouter() {
     assert_eq!(state, json!({ "urgent": 0.93, "team": "billing", "model": "typesafe/jev-1.13-20260917", "dims": 3 }));
 
     // Speech and images come back as { data = <base64>, type }, ready for ui.audio and ui.image.
+    // SAFETY: the only test in this binary.
+    unsafe {
+        std::env::set_var("OPENROUTER_APP_NAME", "Kitchen screen");
+        std::env::set_var("OPENROUTER_APP_URL", "https://kitchen.example.com");
+    }
     let (outcome, state) = run(r#"
         local openrouter = require("openrouter")
         return { name = "brief", view = function() return ui.stat {} end,

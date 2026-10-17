@@ -48,7 +48,7 @@ ssh dokku@dokku.example.com config:set dashboard-next TZ=America/New_York DEFAUL
 | `HOOKS_TOKEN` | the token callers send to hooks with `auth = { token = "HOOKS_TOKEN" }`; unset means open, for local development only |
 | `OPENWEATHERMAP_API_KEY` | weather |
 | `FINNHUB_API_KEY` | stocks |
-| `OPENROUTER_API_KEY` | modules using `lib/openrouter.lua`; `OPENROUTER_MODEL` sets their default model |
+| `OPENROUTER_API_KEY` | modules using `lib/openrouter.lua`; `OPENROUTER_MODEL` sets their default model, `OPENROUTER_APP_NAME` and `OPENROUTER_APP_URL` how they identify themselves |
 | `CALENDAR_<NAME>` | calendar panels with `feeds="<name>"`: one or more ICS URLs, comma-separated |
 
 Modules from `local/` bring their own variables; set them the same way. Pass values with special
