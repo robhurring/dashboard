@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { act } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ModuleFrame } from "./ModuleFrame";
 import { OfflineBanner } from "./OfflineBanner";
 import { registerComponent, type CustomProps } from "./registry";
 import { useData } from "../data/store";
 import { initialData } from "../data/reduce";
 import type { Status } from "../protocol/Status";
+
+const refresh = vi.fn();
+vi.mock("../data/live", () => ({ getLive: () => ({ refresh, command: vi.fn().mockResolvedValue(undefined), rewatch: vi.fn(), start: vi.fn() }) }));
 
 const status = (over: Partial<Status> = {}): Status => ({ ok: true, fetched_at: 1, pushed_at: null, writer: null, error: null, retry_at: null, loading: false, load_error: null, ...over });
 const info = { id: "w", module: "weather", kind: "view" as const, component: null, title: null, icon: null, push_only: false };
@@ -55,12 +58,22 @@ describe("ModuleFrame", () => {
     expect(body).toHaveTextContent("58°");
   });
 
-  test("renders the view and a stale dot when the last fetch failed", () => {
-    useData.setState({ catalog: [info], instances: { w: { rev: 2, kind: "view", state: null, config: {}, view: { type: "stat", props: { value: "58°" }, children: [] }, component: null, status: status({ ok: false, error: "http 500" }) } } });
+  test("a failed refresh says the panel is out of date, how old it is, and why; tapping retries", () => {
+    const twelveMinutesAgo = Math.floor(Date.now() / 1000) - 12 * 60;
+    useData.setState({ catalog: [info], instances: { w: { rev: 2, kind: "view", state: null, config: {}, view: { type: "stat", props: { value: "58°" }, children: [] }, component: null, status: status({ ok: false, error: "http 500", fetched_at: twelveMinutesAgo }) } } });
     render(<ModuleFrame id="w" title="Home" />);
     expect(screen.getByText("58°")).toBeInTheDocument();
-    expect(screen.getByText("Home")).toBeInTheDocument();
-    expect(screen.getByTestId("stale-dot")).toHaveAttribute("title", "http 500");
+    const stale = screen.getByRole("button", { name: /out of date/i });
+    expect(stale).toHaveTextContent("Out of date · 12m");
+    expect(stale).toHaveAttribute("title", expect.stringContaining("http 500"));
+    fireEvent.click(stale);
+    expect(refresh).toHaveBeenCalledWith("w");
+  });
+
+  test("a panel without a header still shows that it is out of date", () => {
+    useData.setState({ catalog: [info], instances: { w: { rev: 2, kind: "view", state: null, config: {}, view: { type: "stat", props: { value: "58°" }, children: [] }, component: null, status: status({ ok: false, error: "timed out", fetched_at: Math.floor(Date.now() / 1000) - 2 * 3600 }) } } });
+    render(<ModuleFrame id="w" chrome="none" />);
+    expect(screen.getByRole("button", { name: /out of date/i })).toHaveTextContent("Out of date · 2h");
   });
 
   test("titles are templates over config, state and status; slot title overrides the module default", () => {
@@ -148,7 +161,7 @@ describe("ModuleFrame", () => {
     render(<ModuleFrame id="slack" title="Slack" chrome="full" />);
     expect(await screen.findByText("Waiting for the first push")).toBeInTheDocument();
     expect(screen.queryByTestId("loading-spinner")).toBeNull();
-    expect(screen.queryByTestId("stale-dot")).toBeNull();
+    expect(screen.queryByRole("button", { name: /out of date/i })).toBeNull();
   });
 
   test("a push-only module whose only message so far is a status still renders its component", async () => {

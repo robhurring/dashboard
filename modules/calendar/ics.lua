@@ -67,11 +67,16 @@ end
 
 -- "NAME;P1=a;P2="b:c":value" -> name, params, value. Colons and semicolons inside quotes don't count.
 local function split_line(line)
-  local head_end, quoted = nil, false
-  for i = 1, #line do
-    local c = line:sub(i, i)
-    if c == '"' then quoted = not quoted
-    elseif c == ":" and not quoted then head_end = i break end
+  local head_end
+  if not line:find('"', 1, true) then
+    head_end = line:find(":", 1, true)
+  else
+    local quoted = false
+    for i = 1, #line do
+      local c = line:sub(i, i)
+      if c == '"' then quoted = not quoted
+      elseif c == ":" and not quoted then head_end = i break end
+    end
   end
   if not head_end then return nil end
   local head, value = line:sub(1, head_end - 1), line:sub(head_end + 1)
@@ -121,17 +126,25 @@ local function parse_duration(value)
   return { days = k * (weeks * 7 + days), secs = k * secs }
 end
 
+-- The properties the calendar uses. Everything else (descriptions, attendees, locations, alarms) is
+-- skipped unparsed: feeds run to megabytes, and the sandbox has a memory limit.
+local KEEP = {
+  UID = true, SUMMARY = true, DTSTART = true, DTEND = true, DURATION = true, RRULE = true,
+  EXDATE = true, ["RECURRENCE-ID"] = true, STATUS = true, BEGIN = true, END = true, ["X-WR-CALNAME"] = true,
+}
+
 -- The feed's name and its VEVENTs, each a table of properties: { NAME = { value, params } }, with
--- EXDATE collected as a list.
+-- EXDATE collected as a list. One pass over the text; folded lines are joined as they're read.
 local function parse(text)
-  text = text:gsub("\r\n", "\n"):gsub("\r", "\n"):gsub("\n[ \t]", "")
   if not text:find("BEGIN:VCALENDAR", 1, true) then error("not an iCalendar feed", 0) end
   local name, events, stack, current = nil, {}, {}, nil
-  for line in text:gmatch("[^\n]+") do
+
+  local function handle(line)
     local prop, params, value = split_line(line)
     if prop == "BEGIN" then
-      stack[#stack + 1] = value:upper()
-      if value:upper() == "VEVENT" then current = { EXDATE = {} } end
+      local kind = value:upper()
+      stack[#stack + 1] = kind
+      if kind == "VEVENT" then current = { EXDATE = {} } end
     elseif prop == "END" then
       if value:upper() == "VEVENT" and current then events[#events + 1] = current current = nil end
       stack[#stack] = nil
@@ -145,6 +158,29 @@ local function parse(text)
       name = unescape(value)
     end
   end
+
+  -- A logical line is a line plus its continuations (lines starting with a space or tab). Lines for
+  -- properties we don't keep are dropped, continuations and all, without ever being built.
+  local pending, parts, skipping = nil, nil, false
+  local function flush()
+    if pending then handle(parts and (pending .. table.concat(parts)) or pending) end
+    pending, parts = nil, nil
+  end
+  for raw in text:gmatch("[^\r\n]+") do
+    local first = raw:byte(1)
+    if first == 32 or first == 9 then
+      if pending and not skipping then
+        parts = parts or {}
+        parts[#parts + 1] = raw:sub(2)
+      end
+    else
+      flush()
+      local key = raw:match("^[%w%-]+")
+      skipping = not (key and KEEP[key:upper()])
+      if not skipping then pending = raw end
+    end
+  end
+  flush()
   return name or "Calendar", events
 end
 

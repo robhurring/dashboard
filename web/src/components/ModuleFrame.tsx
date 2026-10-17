@@ -1,4 +1,4 @@
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { interpolate } from "../data/template";
 import { useModule } from "../data/useModule";
@@ -30,7 +30,7 @@ function useDelayed(on: boolean, ms: number): boolean {
  * (no panel, no header) unless the slot asks for `chrome`.
  */
 export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chrome: chromeProp, component }: { id: string; title?: string; icon?: string; density?: Density; chrome?: Chrome; component?: string }) {
-  const { info, slice, send } = useModule(id);
+  const { info, slice, send, refresh } = useModule(id);
   const custom = !!info && (info.kind === "state" || !!component);
   const chrome: Chrome = chromeProp ?? (custom ? "none" : "full");
   const status = slice?.status ?? null;
@@ -64,11 +64,25 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
   // Remounting on a phase change replays the fade, so content eases in instead of popping over the loader.
   const faded = <div key={phase} data-testid="frame-body" className="h-full min-h-0 animate-fade-in">{body}</div>;
 
-  const dot = stale && <span data-testid="stale-dot" title={status?.error ?? "stale"} className="size-2 shrink-0 rounded-full bg-warn" />;
+  // Out of date: the last refresh failed, so this is older data. Says how old and, on hover, why; a tap retries.
+  const lastGood = status?.fetched_at ?? status?.pushed_at ?? null;
+  const age = lastGood ? ageText(lastGood) : null;
+  const staleBadge = stale && (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); refresh(); }}
+      title={`Couldn't refresh: ${status?.error ?? "unknown error"}. Showing data from ${age ?? "earlier"} ago. Tap to retry.`}
+      aria-label={`Out of date${age ? `, ${age} old` : ""}. Tap to retry.`}
+      className="flex shrink-0 items-center gap-[0.3em] rounded-full bg-warn/15 px-[0.55em] py-[0.15em] text-[0.75em] font-semibold text-warn"
+    >
+      <TriangleAlert className="size-[1.05em]" strokeWidth={2.5} aria-hidden />
+      <span>Out of date{age ? ` · ${age}` : ""}</span>
+    </button>
+  );
   if (chrome === "none") {
     return (
       <section aria-label={heading} data-density={density} className={`relative flex min-h-0 flex-1 flex-col ${DENSITY_CLASS[density]}`}>
-        {refetching && <span className="absolute top-0 right-0 animate-fade-in">{spinner}</span>}
+        {(refetching || staleBadge) && <span className="absolute top-0 right-0 z-10 flex items-center gap-2 animate-fade-in">{staleBadge}{refetching && spinner}</span>}
         {faded}
       </section>
     );
@@ -78,10 +92,17 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
       <header className="type-title mb-3 flex min-h-4 items-center gap-2">
         {chrome === "full" && (iconProp ?? info?.icon) && <Icon name={(iconProp ?? info?.icon)!} className="size-[1.15em] shrink-0 text-accent" />}
         {chrome === "full" && <span className="truncate">{heading}</span>}
-        {dot}
-        {refetching && <span className="ml-auto animate-fade-in">{spinner}</span>}
+        {(staleBadge || refetching) && <span className="ml-auto flex items-center gap-2">{staleBadge}{refetching && <span className="animate-fade-in">{spinner}</span>}</span>}
       </header>
       <div className="min-h-0 flex-1 overflow-hidden">{faded}</div>
     </section>
   );
+}
+
+/** "12m", "2h", "3d" since a unix time; under a minute is "1m". */
+function ageText(unixSecs: number, now = Date.now()): string {
+  const mins = Math.max(1, Math.floor((now / 1000 - unixSecs) / 60));
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  return hours < 48 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }

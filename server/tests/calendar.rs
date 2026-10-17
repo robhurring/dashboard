@@ -110,3 +110,36 @@ async fn garbage_is_an_error_not_a_panic() {
     let err = events("not a calendar", "2026-10-15", "2026-10-16").await.unwrap_err();
     assert!(err.contains("iCalendar"), "{err}");
 }
+
+#[tokio::test]
+async fn a_large_feed_fits_in_the_sandbox_fetch_after_fetch() {
+    // Google feeds run to a few MB: years of events, each with long descriptions and attendee lists.
+    let mut ics = String::from("BEGIN:VCALENDAR\r\nX-WR-CALNAME:Big\r\n");
+    let filler = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor. ".repeat(4);
+    for i in 0..3000 {
+        ics.push_str(&format!(
+            "BEGIN:VEVENT\r\nUID:e{i}\r\nDTSTART;TZID=America/New_York:2025{:02}{:02}T090000\r\nDTEND;TZID=America/New_York:2025{:02}{:02}T100000\r\nSUMMARY:Event {i}\r\nDESCRIPTION:{filler}\r\n ATTENDEE;CN=\"Someone: Else\";ROLE=REQ-PARTICIPANT:mailto:someone{i}@example.com\r\nLOCATION:Room {i}\r\nEND:VEVENT\r\n",
+            i % 12 + 1, i % 28 + 1, i % 12 + 1, i % 28 + 1
+        ));
+    }
+    ics.push_str("BEGIN:VEVENT\r\nUID:today\r\nDTSTART;TZID=America/New_York:20261015T090000\r\nDTEND;TZID=America/New_York:20261015T093000\r\nSUMMARY:Standup\r\nRRULE:FREQ=DAILY\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+    assert!(ics.len() > 1_500_000, "{}", ics.len());
+
+    // One VM, as an instance keeps: the second fetch must not run out of memory either.
+    TZ.call_once(|| unsafe { std::env::set_var("TZ", "America/New_York") });
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../modules/calendar/ics.lua");
+    let vm = Vm::new().unwrap();
+    let cc = CallContext { instance: "calendar".into(), state: json!(null), config: json!({}), http: reqwest::Client::new(), refresh: Arc::new(AtomicBool::new(false)), sys: None, persist: None };
+    let ctx = build_ctx(&vm.lua, &cc).unwrap();
+    let lib: mlua::Table = vm.lua.load(std::fs::read_to_string(&path).unwrap()).eval().unwrap();
+    let f: mlua::Function = lib.get("events").unwrap();
+    for round in 0..3 {
+        let window = vm.lua.create_table().unwrap();
+        window.set("from", "2026-10-15").unwrap();
+        window.set("to", "2026-10-17").unwrap();
+        let v: mlua::Value = vm.run(Duration::from_secs(10), f.call_async((ics.clone(), window, ctx.clone()))).await
+            .unwrap_or_else(|e| panic!("round {round}: {e}"));
+        let n = vm.to_json(v).unwrap().unwrap().as_array().unwrap().len();
+        assert_eq!(n, 2, "round {round}");
+    }
+}
