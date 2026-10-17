@@ -149,3 +149,25 @@ async fn the_first_folder_with_a_module_wins_like_path_and_missing_folders_are_s
     assert_eq!(all.keys().cloned().collect::<Vec<_>>(), vec!["clock", "mine", "weather"]);
     assert_eq!(all["clock"].as_ref().unwrap().title.as_deref(), Some("my clock"));
 }
+
+#[tokio::test]
+async fn require_falls_back_to_shared_libraries_and_a_modules_own_file_wins() {
+    let dir = tempfile::tempdir().unwrap();
+    let shared = tempfile::tempdir().unwrap();
+    let private = tempfile::tempdir().unwrap();
+    std::fs::write(shared.path().join("greet.lua"), r#"return { hello = function() return "shared" end }"#).unwrap();
+    std::fs::write(shared.path().join("util.lua"), r#"return { name = "shared util" }"#).unwrap();
+    std::fs::write(private.path().join("greet.lua"), r#"return { hello = function() return "private" end }"#).unwrap();
+    // Searched like PATH: the private folder comes first.
+    dashboard::lua_vm::set_shared_libs(dashboard::lua_vm::scan_shared_libs(&[private.path().to_path_buf(), shared.path().to_path_buf()]));
+    let path = module(&dir, "m", r#"
+        local greet = require("greet")
+        local util = require("util")
+        return { name = "m", fetch = function() return { greet = greet.hello(), util = util.name } end, view = function() return ui.stat {} end }
+    "#);
+    std::fs::write(dir.path().join("m/util.lua"), r#"return { name = "own util" }"#).unwrap();
+    let def = ModuleDef::load(&path).await.unwrap();
+    assert_eq!(def.libs.get("greet").map(|s| s.contains("private")), Some(true));
+    assert_eq!(def.libs.get("util").map(|s| s.contains("own util")), Some(true));
+    dashboard::lua_vm::set_shared_libs(Default::default());
+}

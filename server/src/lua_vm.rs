@@ -123,6 +123,40 @@ impl Vm {
 /// A module's other `.lua` files, by name without the extension: what `require("name")` may load.
 pub type Libs = std::sync::Arc<std::collections::BTreeMap<String, std::sync::Arc<str>>>;
 
+/// Shared libraries from the LIBS_DIR folders (`lib/openrouter.lua`, ...), loadable by every module.
+static SHARED: std::sync::RwLock<std::collections::BTreeMap<String, std::sync::Arc<str>>> = std::sync::RwLock::new(std::collections::BTreeMap::new());
+
+/// Every `<name>.lua` in `dirs`, searched like `$PATH`: the first folder with a name wins.
+pub fn scan_shared_libs(dirs: &[std::path::PathBuf]) -> std::collections::BTreeMap<String, std::sync::Arc<str>> {
+    let mut out = std::collections::BTreeMap::new();
+    for dir in dirs {
+        let Ok(entries) = std::fs::read_dir(dir) else { continue };
+        let mut files: Vec<_> = entries.flatten().map(|e| e.path()).collect();
+        files.sort();
+        for p in files {
+            let (Some(stem), Some("lua")) = (p.file_stem().and_then(|s| s.to_str()), p.extension().and_then(|e| e.to_str())) else { continue };
+            if out.contains_key(stem) || !p.is_file() {
+                continue;
+            }
+            match std::fs::read_to_string(&p) {
+                Ok(src) => { out.insert(stem.to_string(), std::sync::Arc::from(src)); }
+                Err(e) => tracing::warn!(file = %p.display(), error = %e, "could not read shared library"),
+            }
+        }
+    }
+    out
+}
+
+/// Sets the shared libraries. Modules loaded afterwards can `require` them.
+pub fn set_shared_libs(libs: std::collections::BTreeMap<String, std::sync::Arc<str>>) {
+    *SHARED.write().unwrap_or_else(|e| e.into_inner()) = libs;
+}
+
+/// The shared libraries, as of now.
+pub fn shared_libs() -> std::collections::BTreeMap<String, std::sync::Arc<str>> {
+    SHARED.read().unwrap_or_else(|e| e.into_inner()).clone()
+}
+
 /// Evaluates a module's `module.lua` in its own environment, with a `require` that loads only that
 /// module's sibling files (each once). Modules stay self-contained folders: nothing else is reachable.
 pub async fn eval_module(vm: &Vm, path: &std::path::Path, source: &str, libs: &Libs) -> Result<mlua::Value, String> {
@@ -149,7 +183,7 @@ fn module_env(lua: &Lua, path: &std::path::Path, libs: &Libs) -> mlua::Result<ml
             v => return Ok(v),
         }
         let Some(src) = libs.get(&name) else {
-            return Err(mlua::Error::runtime(format!("require({name:?}): no file {name}.lua in this module's folder")));
+            return Err(mlua::Error::runtime(format!("require({name:?}): no file {name}.lua in this module's folder or the shared libraries")));
         };
         cache.set(name.as_str(), mlua::Value::LightUserData(mlua::LightUserData(std::ptr::null_mut())))?;
         let chunk = lua.load(&**src).set_name(dir.join(format!("{name}.lua")).display().to_string()).set_environment(scope.clone());

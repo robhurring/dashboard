@@ -1,0 +1,81 @@
+//! lib/openrouter.lua, used from a module, against a stub of OpenRouter's chat completions API.
+use axum::{Json, Router, http::{HeaderMap, StatusCode}, routing::post};
+use dashboard::hub::Hub;
+use dashboard::instance::{FetchOutcome, InstanceEvent, InstanceSpec, Limits, spawn};
+use dashboard::module_def::ModuleDef;
+use dashboard::persist::Persist;
+use serde_json::{Value, json};
+use std::{path::Path, sync::{Arc, Mutex}, time::Duration};
+
+async fn stub(seen: Arc<Mutex<Vec<Value>>>) -> String {
+    let app = Router::new().route("/api/v1/chat/completions", post(move |headers: HeaderMap, Json(body): Json<Value>| {
+        let seen = seen.clone();
+        async move {
+            assert_eq!(headers["authorization"], "Bearer or-test-key");
+            seen.lock().unwrap().push(body.clone());
+            match body["model"].as_str() {
+                Some("broken/model") => (StatusCode::BAD_REQUEST, Json(json!({ "error": { "message": "no such model" } }))),
+                Some("empty/model") => (StatusCode::OK, Json(json!({ "error": { "message": "provider overloaded" } }))),
+                _ => (StatusCode::OK, Json(json!({ "choices": [{ "message": { "role": "assistant", "content": "  Three meetings, then gym.  " } }], "usage": { "total_tokens": 42 } }))),
+            }
+        }
+    }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    format!("http://{addr}")
+}
+
+async fn run(src: &str) -> (FetchOutcome, Value) {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(dir.path().join("brief")).unwrap();
+    let path = dir.path().join("brief/module.lua");
+    std::fs::write(&path, src).unwrap();
+    let def = ModuleDef::load(&path).await.map(Arc::new);
+    assert!(def.is_ok(), "{:?}", def.as_ref().err());
+    let hub = Hub::new(Persist::memory()).await.unwrap();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let services = dashboard::instance::HostServices { sys: dashboard::sysstats::Sampler::start(), persist: Persist::memory() };
+    let h = spawn(InstanceSpec { id: "brief".into(), def, config: json!({}) }, hub.clone(), reqwest::Client::new(), Limits::default(), services, tx);
+    h.request_fetch();
+    let outcome = match tokio::time::timeout(Duration::from_secs(5), rx.recv()).await.unwrap().unwrap() {
+        InstanceEvent::FetchFinished { outcome, .. } => outcome,
+        other => panic!("{other:?}"),
+    };
+    (outcome, hub.get("brief").await.map(|s| s.state).unwrap_or(Value::Null))
+}
+
+#[tokio::test]
+async fn ask_and_chat_through_openrouter() {
+    let seen = Arc::new(Mutex::new(Vec::new()));
+    let base = stub(seen.clone()).await;
+    // SAFETY: the only test in this binary.
+    unsafe { std::env::set_var("OPENROUTER_API_KEY", "or-test-key"); }
+    let lib = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../lib/openrouter.lua")).unwrap();
+    let mut shared = std::collections::BTreeMap::new();
+    shared.insert("openrouter".to_string(), Arc::from(lib.replace("https://openrouter.ai", &base)));
+    dashboard::lua_vm::set_shared_libs(shared);
+
+    let (outcome, state) = run(r#"
+        local openrouter = require("openrouter")
+        return { name = "brief", view = function() return ui.stat {} end,
+          fetch = function(ctx)
+            local text = openrouter.ask(ctx, "Summarize my day", { model = "anthropic/claude-sonnet-4.5", system = "Be brief.", max_tokens = 100 })
+            local raw = openrouter.chat(ctx, { model = "openai/gpt-4o", messages = { { role = "user", content = "hi" } } })
+            return { text = text, tokens = raw.usage.total_tokens }
+          end }"#).await;
+    assert_eq!(outcome, FetchOutcome::Updated);
+    assert_eq!(state, json!({ "text": "Three meetings, then gym.", "tokens": 42 }));
+    let first = seen.lock().unwrap()[0].clone();
+    assert_eq!(first["model"], "anthropic/claude-sonnet-4.5");
+    assert_eq!(first["max_tokens"], 100);
+    assert_eq!(first["messages"], json!([{ "role": "system", "content": "Be brief." }, { "role": "user", "content": "Summarize my day" }]));
+
+    for (model, expected) in [("broken/model", "http 400"), ("empty/model", "provider overloaded")] {
+        let (outcome, _) = run(&format!(r#"
+            local openrouter = require("openrouter")
+            return {{ name = "brief", view = function() return ui.stat {{}} end,
+              fetch = function(ctx) return {{ text = openrouter.ask(ctx, "x", {{ model = "{model}" }}) }} end }}"#)).await;
+        assert!(matches!(outcome, FetchOutcome::Failed(ref e) if e.contains(expected)), "{model}: {outcome:?}");
+    }
+}

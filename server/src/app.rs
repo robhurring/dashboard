@@ -26,12 +26,14 @@ pub struct Built {
 
 pub async fn build(cfg: &Config, persist: Persist) -> anyhow::Result<Built> {
     let http = reqwest::Client::builder()
-        .timeout(Duration::from_secs(15))
+        // As long as a fetch may run; a module passes `timeout` to ctx.http for a shorter one.
+        .timeout(Duration::from_secs(300))
         .user_agent(concat!("dashboard/", env!("CARGO_PKG_VERSION")))
         .build()?;
     let services = HostServices { sys: crate::sysstats::Sampler::start(), persist: persist.clone() };
     let hub = Hub::new(persist).await?;
     crate::widgets::set_custom(crate::widgets::scan_custom(&cfg.widgets_dirs));
+    crate::lua_vm::set_shared_libs(crate::lua_vm::scan_shared_libs(&cfg.libs_dirs));
     let modules = module_def::load_all(&cfg.modules_dirs).await;
     for (name, m) in &modules {
         if let Err(e) = m {
@@ -42,7 +44,7 @@ pub async fn build(cfg: &Config, persist: Persist) -> anyhow::Result<Built> {
     let supervisor =
         supervisor::start(modules, dashboard.clone(), cfg.timezone, hub.clone(), http, Limits::default(), services).await;
     if cfg.watch_files {
-        crate::watcher::spawn(cfg.modules_dirs.clone(), cfg.widgets_dirs.clone(), cfg.application_file.clone(), dashboard.clone(), supervisor.clone())?;
+        crate::watcher::spawn(cfg.modules_dirs.clone(), cfg.widgets_dirs.clone(), cfg.libs_dirs.clone(), cfg.application_file.clone(), dashboard.clone(), supervisor.clone())?;
         tracing::info!("watching modules and application.lua for changes");
     }
     let state = AppState { hub: hub.clone(), supervisor: supervisor.clone(), sessions: Arc::new(AtomicU64::new(1)) };

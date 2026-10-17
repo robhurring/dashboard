@@ -28,7 +28,9 @@ pub struct Limits {
 
 impl Default for Limits {
     fn default() -> Self {
-        Self { fetch: Duration::from_secs(20), command: Duration::from_secs(10), view: Duration::from_secs(1) }
+        // Generous on purpose: a module takes as long as its upstream needs (a model call, a slow
+        // summary). The deadline only stops a module that's truly stuck.
+        Self { fetch: Duration::from_secs(300), command: Duration::from_secs(300), view: Duration::from_secs(1) }
     }
 }
 

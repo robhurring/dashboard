@@ -8,6 +8,8 @@ pub struct Config {
     /// `MODULES_DIR`: folders of modules, colon-separated, searched like `$PATH`: the first folder that
     /// has a module by a given name wins. Missing folders are skipped.
     pub modules_dirs: Vec<PathBuf>,
+    /// `LIBS_DIR`: folders of shared Lua libraries any module can `require`, searched like `$PATH`.
+    pub libs_dirs: Vec<PathBuf>,
     /// `WIDGETS_DIR`: folders of custom widgets (`<name>.tsx`), colon-separated. Default `local/widgets`.
     pub widgets_dirs: Vec<PathBuf>,
     /// `DEFAULT_THEME`: the theme a screen opens without `?theme=`. Unset: the web build's choice (home).
@@ -41,6 +43,7 @@ impl Config {
             static_dir: var("STATIC_DIR").unwrap_or_else(|| "web/dist".into()).into(),
             modules_dirs: path_list(&var("MODULES_DIR").unwrap_or_else(|| "local/modules:modules".into())),
             default_theme: var("DEFAULT_THEME"),
+            libs_dirs: path_list(&var("LIBS_DIR").unwrap_or_else(|| "local/lib:lib".into())),
             widgets_dirs: path_list(&var("WIDGETS_DIR").unwrap_or_else(|| "local/widgets".into())),
             // A private overlay's application.lua, when there is one, replaces the repo's.
             application_file: var("APPLICATION_FILE")

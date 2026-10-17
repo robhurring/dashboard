@@ -32,7 +32,8 @@ copies with their own state and schedule.
 ## Fetching
 
 `fetch(ctx)` runs on the schedule, but only while some screen shows the instance (or the slot says
-`poll="always"`). A module with `fetch` and no schedule runs it once, the first time a screen shows
+`poll="always"`). It may take minutes, which is plenty for slow upstreams like model calls; only a
+fetch stuck past five minutes is stopped. A module with `fetch` and no schedule runs it once, the first time a screen shows
 the instance, to set its starting state. Whatever it returns becomes the state and is pushed to every screen. If it
 raises, the old state stays on screen with an error badge, and the server retries with backoff.
 
@@ -53,12 +54,39 @@ What `ctx` offers:
 Keep upstream URLs in the module and secrets in the environment. Config can be set by any screen,
 so it should never decide where requests go or carry a key.
 
-## More than one file
+## More than one file, and shared libraries
 
 A module can split its code into other `.lua` files in its own folder and load them with
-`require("name")`. Each file loads once per instance, and only files in the module's folder are
-reachable, so a module stays a folder you can copy anywhere. The calendar module keeps its
-iCalendar parser in `modules/calendar/ics.lua` this way.
+`require("name")`. The calendar module keeps its iCalendar parser in `modules/calendar/ics.lua` this
+way. Each file loads once per instance.
+
+When a module's folder has no such file, `require` looks in the shared libraries: `<name>.lua` files
+in `local/lib` and then the repo's `lib/` (the `LIBS_DIR` setting, searched like `$PATH`). Nothing
+else is reachable.
+
+### lib/openrouter.lua
+
+One API for models from Anthropic, OpenAI, Google and others, through [OpenRouter](https://openrouter.ai).
+Set `OPENROUTER_API_KEY`, then:
+
+```lua
+local openrouter = require("openrouter")
+
+fetch = function(ctx)
+  local text = openrouter.ask(ctx, "Summarize today's headlines in two lines:\n" .. headlines, {
+    model = "anthropic/claude-sonnet-4.5",   -- any model name from openrouter.ai/models
+    system = "Be brief and plain.",
+    max_tokens = 200,
+  })
+  return { summary = text }
+end,
+```
+
+`openrouter.ask(ctx, prompt, opts)` returns the answer as text. `opts` takes `model`, `system` and any
+of OpenRouter's request options. `openrouter.chat(ctx, request)` sends a full request (`model`,
+`messages`, `tools`, `response_format`, ...) and returns the whole response. Without a `model`, the
+library uses `OPENROUTER_MODEL`, else OpenRouter's automatic choice. Both raise on errors, which
+leaves the panel's last good state on screen.
 
 ## Drawing with widgets
 

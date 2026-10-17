@@ -31,3 +31,8 @@ async fn the_starter_application_lua_in_local_example_loads() {
     let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../local.example/application.lua");
     dashboard::dashboard::load(&path).await.unwrap();
 }
+
+#[test]
+fn libs_dir_defaults_to_local_then_the_repo_lib() {
+    assert_eq!(config(&[]).libs_dirs, vec![PathBuf::from("local/lib"), PathBuf::from("lib")]);
+}

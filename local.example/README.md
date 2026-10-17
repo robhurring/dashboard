@@ -10,6 +10,7 @@ local/
   modules/<name>/module.lua   a module; add ui/index.tsx for a custom component
   themes/<name>/index.tsx     a theme; start from a copy of web/themes/home
   widgets/<name>.tsx          a widget, used in Lua views as ui.<name>
+  lib/<name>.lua              a shared Lua library any module can require("<name>")
   application.lua             instances that run with no screen open
   tests/*.rs                  Rust tests for your modules, run by bin/test
 ```

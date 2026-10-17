@@ -159,9 +159,10 @@ impl ModuleDef {
     }
 }
 
-/// Every other `.lua` file next to `module.lua`, keyed by name without the extension.
+/// What `require` can load for this module: the shared libraries, then every other `.lua` file next to
+/// `module.lua` (keyed by name without the extension), which wins over a shared library of the same name.
 async fn read_libs(module_path: &Path) -> Result<crate::lua_vm::Libs, String> {
-    let mut libs = BTreeMap::new();
+    let mut libs = crate::lua_vm::shared_libs();
     let Some(dir) = module_path.parent() else { return Ok(Arc::new(libs)) };
     let mut entries = tokio::fs::read_dir(dir).await.map_err(|e| e.to_string())?;
     while let Ok(Some(entry)) = entries.next_entry().await {

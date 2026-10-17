@@ -32,12 +32,13 @@ setting() { local v="${!1:-}"; [[ -n "$v" ]] || v=$(grep -E "^$1=" .env 2>/dev/n
 modules_dirs=$(setting MODULES_DIR "local/modules:modules")
 themes_dirs=$(setting THEMES_DIR "local/themes:web/themes")
 widgets_dirs=$(setting WIDGETS_DIR "local/widgets")
+libs_dirs=$(setting LIBS_DIR "local/lib:lib")
 application=$(setting APPLICATION_FILE "")
 
 stage=$(mktemp -d)
 trap 'rm -rf "$stage"' EXIT
 git archive HEAD | tar -x -C "$stage"
-mkdir -p "$stage/local/modules" "$stage/local/themes" "$stage/local/widgets"
+mkdir -p "$stage/local/modules" "$stage/local/themes" "$stage/local/widgets" "$stage/local/lib"
 
 # Copies the listed folders into local/<kind>, searched like $PATH: the first folder with a name wins.
 # The repo's own folder ships in the image anyway; it's only consulted so a name it holds shadows the folders after it.
@@ -63,6 +64,7 @@ echo "extensions:"
 gather "$modules_dirs" modules modules
 gather "$themes_dirs" web/themes themes
 gather "$widgets_dirs" "" widgets
+gather "$libs_dirs" lib lib
 if [[ -n "$application" && "$application" != "application.lua" ]]; then
   cp "$application" "$stage/local/application.lua"; echo "  + application.lua  (from $application)"
 elif [[ -f local/application.lua ]]; then

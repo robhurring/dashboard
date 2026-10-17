@@ -14,6 +14,7 @@ local/
   modules/<name>/        modules, same shape as modules/: module.lua, optional ui/ and sibling .lua files
   themes/<name>/         themes: index.tsx and tokens.css
   widgets/<name>.tsx     custom widgets, usable in Lua views as ui.<name>
+  lib/<name>.lua         shared Lua libraries any module can require("<name>")
   application.lua        optional: replaces the repo's application.lua
   tests/*.rs             optional: Rust tests for your modules, run by bin/test
 ```
@@ -41,6 +42,7 @@ has a given name wins. `local/` comes first by default, so `local/modules/weathe
 | `MODULES_DIR` | `local/modules:modules` |
 | `THEMES_DIR` | `local/themes:web/themes` |
 | `WIDGETS_DIR` | `local/widgets` |
+| `LIBS_DIR` | `local/lib:lib` |
 | `APPLICATION_FILE` | `local/application.lua` if it exists, else `application.lua` |
 | `DEFAULT_THEME` | `home` |
 

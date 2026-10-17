@@ -137,6 +137,7 @@ Modules, themes and widgets are found in folders, and the repo's own are just th
 | `MODULES_DIR` | `local/modules:modules` | modules (`<name>/module.lua`, optional `ui/`) |
 | `THEMES_DIR` | `local/themes:web/themes` | themes (`<name>/index.tsx`) |
 | `WIDGETS_DIR` | `local/widgets` | custom widgets (`<name>.tsx`, used as `ui.<name>`) |
+| `LIBS_DIR` | `local/lib:lib` | shared Lua libraries (`<name>.lua`, used with `require`) |
 | `DEFAULT_THEME` | `home` | the theme that opens without `?theme=` |
 
 They're searched like `$PATH`: the first folder with a name wins, so a module in

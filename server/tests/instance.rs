@@ -187,3 +187,10 @@ async fn a_module_that_never_loaded_reports_its_error() {
     assert!(hub.get("ghost").await.unwrap().status.load_error.unwrap().contains("no module named"));
     assert!(h.command("x".into(), Value::Null).await.unwrap_err().contains("no module named"));
 }
+
+#[test]
+fn default_deadlines_are_minutes_so_slow_upstreams_like_model_calls_finish() {
+    let l = Limits::default();
+    assert!(l.fetch >= Duration::from_secs(300), "{:?}", l.fetch);
+    assert!(l.command >= Duration::from_secs(300), "{:?}", l.command);
+}
