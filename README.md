@@ -115,6 +115,7 @@ whatever is sending to it (a cron job, n8n, an AI agent) can discover the contra
 | `stocks` | quotes and the day's change | `FINNHUB_API_KEY` |
 | `clock` | digital or analog, any time zone | nothing |
 | `system`, `redis` | CPU, memory, load, uptime, Redis usage | nothing |
+| `openrouter` | OpenRouter credit left, and spend today, this week and this month | `OPENROUTER_API_KEY` |
 | `echo` | the worked example of a component, commands and a hook | nothing |
 
 ## Running it

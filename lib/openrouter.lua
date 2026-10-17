@@ -25,9 +25,9 @@ local function setting(ctx, name, fallback)
 end
 
 -- Auth plus app attribution: HTTP-Referer identifies the app, X-OpenRouter-Title names it.
-local function headers(ctx)
+local function headers(ctx, key_setting)
   return {
-    Authorization = "Bearer " .. ctx.env("OPENROUTER_API_KEY"),
+    Authorization = "Bearer " .. ctx.env(key_setting or "OPENROUTER_API_KEY"),
     ["HTTP-Referer"] = setting(ctx, "OPENROUTER_APP_URL", "https://github.com/robhurring/dashboard"),
     ["X-OpenRouter-Title"] = setting(ctx, "OPENROUTER_APP_NAME", "dashboard"),
   }
@@ -57,6 +57,23 @@ function M.request(ctx, path, body)
     error("openrouter: " .. tostring(message), 0)
   end
   return response
+end
+
+--- GETs an OpenRouter endpoint ("/credits", "/key", "/models", ...) and returns its `data`.
+--- opts.key names the setting holding the key, for endpoints that need a management key:
+---   openrouter.get(ctx, "/activity", { key = "OPENROUTER_MANAGEMENT_KEY" })
+---@param ctx Ctx
+---@param path string
+---@param opts table|nil
+---@return any
+function M.get(ctx, path, opts)
+  local response = ctx.http.get(API .. path, { headers = headers(ctx, opts and opts.key) })
+  if type(response) ~= "table" then error("openrouter: unexpected response", 0) end
+  if response.error then
+    local message = type(response.error) == "table" and response.error.message or tostring(response.error)
+    error("openrouter: " .. tostring(message), 0)
+  end
+  return response.data
 end
 
 local function with_model(request, model)

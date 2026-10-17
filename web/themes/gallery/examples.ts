@@ -81,6 +81,17 @@ export const EXAMPLES: Example[] = [
     options: [["items", "`{ label, value, delta?, change? }`; `delta` picks the color, `change` is the text shown (else `delta` as a percent)"]],
   },
   {
+    name: "progress",
+    summary: "A horizontal bar of value out of max. Stops color it by how full it is, so a balance can turn yellow, then red, as it runs down.",
+    lua: `ui.progress {
+  value = 9.96, max = 10, label = "Balance", text = "$9.96 left of $10.00",
+  stops = { [0] = "red", [10] = "yellow", [25] = "green" },   -- by percent full
+}`,
+    node: w("progress", { value: 9.96, max: 10, label: "Balance", text: "$9.96 left of $10.00", stops: { "0": "red", "10": "yellow", "25": "green" } }),
+    options: [["value, max", "how full (max defaults to 100)"], ["label, text", "a label, and text on the right"], ["stops", "`{ [0] = \"red\", [10] = \"yellow\", [25] = \"green\" }`: the color from each percent up"], ["tone", "the color without stops (default the theme accent)"]],
+    height: 140,
+  },
+  {
     name: "line",
     summary: "A sparkline over a list of numbers, oldest first, with the latest value as text.",
     lua: `ui.line { points = state.cpu_history, label = "CPU", unit = "%", min = 0, max = 100 }`,

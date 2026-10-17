@@ -8,7 +8,7 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?theme=gallery` to see every widget live.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [progress](#uiprogress) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
@@ -65,6 +65,26 @@ ui.ticker { items = {
 | Option | |
 |---|---|
 | `items` | `{ label, value, delta?, change? }`; `delta` picks the color, `change` is the text shown (else `delta` as a percent) |
+
+## ui.progress
+
+A horizontal bar of value out of max. Stops color it by how full it is, so a balance can turn yellow, then red, as it runs down.
+
+<img src="images/widgets/progress.png" alt="ui.progress" width="270">
+
+```lua
+ui.progress {
+  value = 9.96, max = 10, label = "Balance", text = "$9.96 left of $10.00",
+  stops = { [0] = "red", [10] = "yellow", [25] = "green" },   -- by percent full
+}
+```
+
+| Option | |
+|---|---|
+| `value`, `max` | how full (max defaults to 100) |
+| `label`, `text` | a label, and text on the right |
+| `stops` | `{ [0] = "red", [10] = "yellow", [25] = "green" }`: the color from each percent up |
+| `tone` | the color without stops (default the theme accent) |
 
 ## ui.line
 
