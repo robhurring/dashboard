@@ -6,9 +6,9 @@ A module's `view(state, config)` returns a tree of these widgets, and the screen
 the module's panel. Nothing here needs frontend code. When a widget doesn't fit, a module can ship
 its own React component instead: see [modules.md](modules.md).
 
-Open the dashboard with `?theme=gallery` to see every widget live.
+Open the dashboard with `?demo&theme=gallery` to see every widget live, a page per group.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [progress](#uiprogress) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [button](#uibutton) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [progress](#uiprogress) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [text](#uitext) · [markdown](#uimarkdown) · [list](#uilist) · [badge](#uibadge) · [icon](#uiicon) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [button](#uibutton) · [image](#uiimage) · [audio](#uiaudio) · [title](#uititle) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
@@ -27,6 +27,14 @@ ui.stat { value = "63°", label = "Portland", sub = "feels like 62°", icon = "c
 | `sub` | a smaller line underneath |
 | `icon` | a Lucide icon name |
 
+### Without an icon
+
+<img src="images/widgets/stat-without-an-icon.png" alt="ui.stat: Without an icon" width="270">
+
+```lua
+ui.stat { value = "1,284", label = "Steps today", sub = "goal 8,000" }
+```
+
 ## ui.gauge
 
 A half-circle meter. Its color changes as the value passes each stop.
@@ -35,8 +43,13 @@ A half-circle meter. Its color changes as the value passes each stop.
 
 ```lua
 ui.gauge {
-  value = 82, unit = "%", label = "Memory", sub = "13.1 / 16 GB", icon = "memory-stick",
-  stops = { [75] = "yellow", [90] = "red" }, big = true,
+  value = 82,
+  unit = "%",
+  label = "Memory",
+  sub = "13.1 / 16 GB",
+  icon = "memory-stick",
+  stops = { [75] = "yellow", [90] = "red" },
+  big = true,
 }
 ```
 
@@ -48,23 +61,65 @@ ui.gauge {
 | `tone` | the color below the first stop (default the theme accent) |
 | `big` | `true` to fill the whole panel; without it the gauge is a compact inline meter |
 
-## ui.ticker
+### Low and green
 
-Rows of label, value and change, colored up or down.
-
-<img src="images/widgets/ticker.png" alt="ui.ticker" width="270">
+<img src="images/widgets/gauge-low-and-green.png" alt="ui.gauge: Low and green" width="270">
 
 ```lua
-ui.ticker { items = {
-  { label = "AAPL", value = "231.40", delta = 2.18, change = "+$2.18" },
-  { label = "MSFT", value = "428.92", delta = -1.07, change = "-$1.07" },
-  { label = "SPY", value = "584.12", delta = 0.59 },
-} }
+ui.gauge {
+  value = 23,
+  unit = "%",
+  label = "CPU",
+  sub = "of all cores",
+  icon = "cpu",
+  stops = { [70] = "yellow", [90] = "red" },
+  big = true,
+}
 ```
 
-| Option | |
-|---|---|
-| `items` | `{ label, value, delta?, change? }`; `delta` picks the color, `change` is the text shown (else `delta` as a percent) |
+### Past the red stop
+
+<img src="images/widgets/gauge-past-the-red-stop.png" alt="ui.gauge: Past the red stop" width="270">
+
+```lua
+ui.gauge {
+  value = 96,
+  unit = "%",
+  label = "Disk",
+  sub = "1.9 / 2 TB",
+  icon = "hard-drive",
+  stops = { [75] = "yellow", [90] = "red" },
+  big = true,
+}
+```
+
+### A fixed tone
+
+<img src="images/widgets/gauge-a-fixed-tone.png" alt="ui.gauge: A fixed tone" width="270">
+
+```lua
+ui.gauge {
+  value = 41,
+  unit = "%",
+  label = "Redis",
+  icon = "redis",
+  tone = "purple",
+  big = true,
+}
+```
+
+### Compact, in a row
+
+<img src="images/widgets/gauge-compact-in-a-row.png" alt="ui.gauge: Compact, in a row" width="270">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 4,
+  ui.gauge { value = 64, unit = "%", label = "Humidity" },
+  ui.gauge { value = 12, max = 20, unit = " mph", label = "Wind" },
+}
+```
 
 ## ui.progress
 
@@ -74,8 +129,11 @@ A horizontal bar of value out of max. Stops color it by how full it is, so a bal
 
 ```lua
 ui.progress {
-  value = 9.96, max = 10, label = "Balance", text = "$9.96 left of $10.00",
-  stops = { [0] = "red", [10] = "yellow", [25] = "green" },   -- by percent full
+  value = 9.96,
+  max = 10,
+  label = "Balance",
+  text = "$9.96 left of $10.00",
+  stops = { [0] = "red", [10] = "yellow", [25] = "green" },
 }
 ```
 
@@ -86,6 +144,68 @@ ui.progress {
 | `stops` | `{ [0] = "red", [10] = "yellow", [25] = "green" }`: the color from each percent up |
 | `tone` | the color without stops (default the theme accent) |
 
+### Running low
+
+<img src="images/widgets/progress-running-low.png" alt="ui.progress: Running low" width="270">
+
+```lua
+ui.progress {
+  value = 1.8,
+  max = 10,
+  label = "Balance",
+  text = "$1.80 left of $10.00",
+  stops = { [0] = "red", [10] = "yellow", [25] = "green" },
+}
+```
+
+### Nearly out
+
+<img src="images/widgets/progress-nearly-out.png" alt="ui.progress: Nearly out" width="270">
+
+```lua
+ui.progress {
+  value = 0.6,
+  max = 10,
+  label = "Balance",
+  text = "$0.60 left of $10.00",
+  stops = { [0] = "red", [10] = "yellow", [25] = "green" },
+}
+```
+
+### Plain, in the accent
+
+<img src="images/widgets/progress-plain-in-the-accent.png" alt="ui.progress: Plain, in the accent" width="270">
+
+```lua
+ui.progress { value = 40, label = "Backup", text = "40%" }
+```
+
+## ui.ticker
+
+Rows of label, value and change, colored up or down.
+
+<img src="images/widgets/ticker.png" alt="ui.ticker" width="270">
+
+```lua
+ui.ticker {
+  items = { { label = "AAPL", value = "231.40", delta = 2.18, change = "+$2.18" }, { label = "MSFT", value = "428.92", delta = -1.07, change = "-$1.07" }, { label = "SPY", value = "584.12", delta = 0.59 } },
+}
+```
+
+| Option | |
+|---|---|
+| `items` | `{ label, value, delta?, change? }`; `delta` picks the color, `change` is the text shown (else `delta` as a percent) |
+
+### Percent changes
+
+<img src="images/widgets/ticker-percent-changes.png" alt="ui.ticker: Percent changes" width="270">
+
+```lua
+ui.ticker {
+  items = { { label = "BTC", value = "67,410", delta = 3.2 }, { label = "ETH", value = "3,120", delta = -0.8 }, { label = "Gold", value = "2,340", delta = 0.1 } },
+}
+```
+
 ## ui.line
 
 A sparkline over a list of numbers, oldest first, with the latest value as text.
@@ -93,7 +213,13 @@ A sparkline over a list of numbers, oldest first, with the latest value as text.
 <img src="images/widgets/line.png" alt="ui.line" width="270">
 
 ```lua
-ui.line { points = state.cpu_history, label = "CPU", unit = "%", min = 0, max = 100 }
+ui.line {
+  points = { 22, 25, 31, 28, 35, 41, 38, 33, 29, 34, 46, 52, 48, 41, 37, 33, 30, 36, 39, 35 },
+  label = "CPU",
+  unit = "%",
+  min = 0,
+  max = 100,
+}
 ```
 
 | Option | |
@@ -104,6 +230,20 @@ ui.line { points = state.cpu_history, label = "CPU", unit = "%", min = 0, max = 
 | `tone` | `accent`, `good`, `warn` or `bad` |
 | `height` | in em (default 3.5), or `"fill"` for the whole panel |
 
+### A tone and its own range
+
+<img src="images/widgets/line-a-tone-and-its-own-range.png" alt="ui.line: A tone and its own range" width="270">
+
+```lua
+ui.line {
+  points = { 61, 60, 59, 58, 58, 60, 63, 66, 69, 71, 72, 72, 70, 67, 64, 62 },
+  label = "Outside",
+  unit = "°",
+  tone = "good",
+  height = 5,
+}
+```
+
 ## ui.bar
 
 Vertical bars with labels and values underneath.
@@ -111,10 +251,11 @@ Vertical bars with labels and values underneath.
 <img src="images/widgets/bar.png" alt="ui.bar" width="270">
 
 ```lua
-ui.bar { label = "Steps", unit = "k", items = {
-  { label = "M", value = 8.2 }, { label = "T", value = 11.4 }, { label = "W", value = 6.1 },
-  { label = "T", value = 9.8 }, { label = "F", value = 12.3 },
-} }
+ui.bar {
+  label = "Steps",
+  unit = "k",
+  items = { { label = "M", value = 8.2 }, { label = "T", value = 11.4 }, { label = "W", value = 6.1 }, { label = "T", value = 9.8 }, { label = "F", value = 12.3 } },
+}
 ```
 
 | Option | |
@@ -129,9 +270,11 @@ Parts of a whole, with a legend and a figure in the middle.
 <img src="images/widgets/donut.png" alt="ui.donut" width="270">
 
 ```lua
-ui.donut { center = 48, label = "Disk (GB)", items = {
-  { label = "Media", value = 28 }, { label = "Backups", value = 12 }, { label = "Other", value = 8 },
-} }
+ui.donut {
+  center = 48,
+  label = "Disk (GB)",
+  items = { { label = "Media", value = 28 }, { label = "Backups", value = 12 }, { label = "Other", value = 8 } },
+}
 ```
 
 | Option | |
@@ -140,26 +283,17 @@ ui.donut { center = 48, label = "Disk (GB)", items = {
 | `center` | text in the hole |
 | `label` | a caption |
 
-## ui.list
+### A budget
 
-Tappable rows. A row's `on_tap` runs one of the module's commands.
-
-<img src="images/widgets/list.png" alt="ui.list" width="270">
+<img src="images/widgets/donut-a-budget.png" alt="ui.donut: A budget" width="270">
 
 ```lua
-ui.list { empty = "Nothing waiting",
-  ui.row { title = "#incident-412", meta = "3 new", badge = 3, on_tap = cmd("open", { channel = "incident-412" }) },
-  ui.row { title = "#deploys", meta = "build 1.8.2 is out", badge = 1 },
-  ui.row { title = "#random", meta = "quiet" },
+ui.donut {
+  center = "$620",
+  label = "October",
+  items = { { label = "Groceries", value = 310 }, { label = "Dining", value = 140 }, { label = "Fuel", value = 90 }, { label = "Other", value = 80 } },
 }
 ```
-
-| Option | |
-|---|---|
-| `(children)` | `ui.row`s, as array entries or `children` |
-| `empty` | shown when there are no rows |
-| `row: title`, `meta`, `badge` | the row's text and a count |
-| `row: on_tap` | `cmd("name", args)`: runs that command when tapped |
 
 ## ui.text
 
@@ -174,6 +308,14 @@ ui.text { text = "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." 
 | Option | |
 |---|---|
 | `text` | markdown |
+
+### A digest
+
+<img src="images/widgets/text-a-digest.png" alt="ui.text: A digest" width="270">
+
+```lua
+ui.text { text = "### Today\n- **Standup** moved to 10:00\n- Dentist at 4\n- Package arriving" }
+```
 
 ## ui.markdown
 
@@ -206,34 +348,150 @@ bin/deploy prod
 | `text` | markdown, GitHub-flavoured |
 | `links` | `false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab) |
 
-## ui.button
+### Links as plain text
 
-Runs one of the module's commands when tapped: refresh, run a scene, snooze. Shows the command's error if it fails.
-
-<img src="images/widgets/button.png" alt="ui.button" width="270">
+<img src="images/widgets/markdown-links-as-plain-text.png" alt="ui.markdown: Links as plain text" width="270">
 
 ```lua
-ui.button { label = "Movie night", icon = "clapperboard", on_tap = cmd("scene", { name = "movie" }) }
+ui.markdown { links = false, text = [[
+### Kitchen
+
+> Dishwasher runs at **10 pm**.
+
+1. Empty the compost
+2. Water the basil
+
+Recipe: [shakshuka](https://example.com/shakshuka)
+]] }
+```
+
+## ui.list
+
+Tappable rows. A row's `on_tap` runs one of the module's commands.
+
+<img src="images/widgets/list.png" alt="ui.list" width="270">
+
+```lua
+ui.list {
+  empty = "Nothing waiting",
+  ui.row {
+    title = "#incident-412",
+    meta = "3 new",
+    badge = 3,
+    on_tap = cmd("open", { channel = "incident-412" }),
+  },
+  ui.row { title = "#deploys", meta = "build 1.8.2 is out", badge = 1 },
+  ui.row { title = "#random", meta = "quiet" },
+}
 ```
 
 | Option | |
 |---|---|
-| `label`, `icon` | text and a Lucide icon |
-| `on_tap` | `cmd("name", args)`: the command it runs |
+| `(children)` | `ui.row`s, as array entries or `children` |
+| `empty` | shown when there are no rows |
+| `row: title`, `meta`, `badge` | the row's text and a count |
+| `row: on_tap` | `cmd("name", args)`: runs that command when tapped |
+
+### Empty
+
+<img src="images/widgets/list-empty.png" alt="ui.list: Empty" width="270">
+
+```lua
+ui.list { empty = "Inbox zero" }
+```
+
+## ui.badge
+
+A small count or label in a tone.
+
+<img src="images/widgets/badge.png" alt="ui.badge" width="270">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 2,
+  ui.badge { text = "live", tone = "good" },
+  ui.badge { text = 3, tone = "warn" },
+  ui.badge { text = "down", tone = "bad" },
+  ui.badge { text = "idle", tone = "muted" },
+}
+```
+
+| Option | |
+|---|---|
+| `text` | a string or number |
+| `tone` | `good`, `warn`, `bad` or `muted` |
+
+## ui.icon
+
+A Lucide icon by name, sized in pixels and colored like the text around it.
+
+<img src="images/widgets/icon.png" alt="ui.icon" width="270">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 4,
+  ui.icon { name = "sun", size = 28 },
+  ui.icon { name = "cloud-rain", size = 28 },
+  ui.icon { name = "bell", size = 28 },
+  ui.icon { name = "server", size = 28 },
+}
+```
+
+| Option | |
+|---|---|
+| `name` | a Lucide icon name from web/src/widgets/icons.tsx |
+| `size` | in px (default 20) |
+
+### Any Lucide icon
+
+<img src="images/widgets/icon-any-lucide-icon.png" alt="ui.icon: Any Lucide icon" width="270">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 4,
+  ui.icon { name = "lightbulb", size = 28 },
+  ui.icon { name = "thermometer", size = 28 },
+  ui.icon { name = "door-open", size = 28 },
+  ui.icon { name = "droplets", size = 28 },
+  ui.icon { name = "lock", size = 28 },
+  ui.icon { name = "fan", size = 28 },
+}
+```
 
 ## ui.toggle
 
 On or off, iOS style: a switch in a row, a pill to slide (upright like a wall switch), or a Control Center tile. Flips at once; goes back and says why if the command fails.
 
-<img src="images/widgets/toggle.png" alt="ui.toggle" width="390">
+<img src="images/widgets/toggle.png" alt="ui.toggle" width="300">
 
 ```lua
-ui.group { direction = "column", gap = 4,
-  ui.toggle { label = "Kitchen lights", icon = "lightbulb", icon_off = "lightbulb-off", on = true,
-              on_change = cmd("light", { id = "kitchen" }) },        -- the command gets value = true/false
-  ui.group { direction = "row", gap = 4,
-    ui.toggle { label = "Porch", style = "slide", orientation = "vertical", icon = "lamp", on = false, on_change = cmd("porch") },
-    ui.toggle { label = "Fan", style = "tile", icon = "fan", sub = "Bedroom", on = true, on_change = cmd("fan") },
+ui.group {
+  direction = "column",
+  gap = 4,
+  ui.toggle {
+    label = "Kitchen lights",
+    icon = "lightbulb",
+    icon_off = "lightbulb-off",
+    on = true,
+    on_change = cmd("light", { id = "kitchen" }),
+  },
+  ui.toggle {
+    label = "Hallway",
+    sub = "motion sensor",
+    icon = "lightbulb",
+    icon_off = "lightbulb-off",
+    on = false,
+    on_change = cmd("light", { id = "hall" }),
+  },
+  ui.toggle {
+    label = "Do not disturb",
+    icon = "moon",
+    on = true,
+    tone = "purple",
+    on_change = cmd("dnd"),
   },
 }
 ```
@@ -248,6 +506,83 @@ ui.group { direction = "column", gap = 4,
 | `orientation` | for `slide`: `horizontal` (default) or `vertical` |
 | `tone` | the on color (default `good`, green) |
 
+### Slide
+
+<img src="images/widgets/toggle-slide.png" alt="ui.toggle: Slide" width="300">
+
+```lua
+ui.toggle {
+  label = "Slide to unlock",
+  style = "slide",
+  icon = "lock-open",
+  on = false,
+  on_change = cmd("door"),
+}
+```
+
+### Upright slides
+
+<img src="images/widgets/toggle-upright-slides.png" alt="ui.toggle: Upright slides" width="225">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 6,
+  ui.toggle {
+    label = "Porch",
+    style = "slide",
+    orientation = "vertical",
+    icon = "lamp",
+    on = false,
+    on_change = cmd("porch"),
+  },
+  ui.toggle {
+    label = "Garage",
+    style = "slide",
+    orientation = "vertical",
+    icon = "warehouse",
+    on = true,
+    on_change = cmd("garage"),
+  },
+}
+```
+
+### Tiles
+
+<img src="images/widgets/toggle-tiles.png" alt="ui.toggle: Tiles" width="390">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 4,
+  ui.toggle {
+    label = "Fan",
+    style = "tile",
+    icon = "fan",
+    sub = "Bedroom",
+    on = true,
+    on_change = cmd("fan"),
+  },
+  ui.toggle {
+    label = "Front door",
+    style = "tile",
+    icon = "lock",
+    sub = "Locked",
+    on = false,
+    on_change = cmd("lock"),
+  },
+  ui.toggle {
+    label = "Sprinklers",
+    style = "tile",
+    icon = "droplets",
+    sub = "Zone 2",
+    on = true,
+    tone = "accent",
+    on_change = cmd("zone", { id = 2 }),
+  },
+}
+```
+
 ## ui.slider
 
 A Control Center slider: a fat track that fills as you drag, horizontal or upright. Sends the value once, when let go.
@@ -255,9 +590,24 @@ A Control Center slider: a fat track that fills as you drag, horizontal or uprig
 <img src="images/widgets/slider.png" alt="ui.slider" width="270">
 
 ```lua
-ui.group { direction = "row", gap = 6,
-  ui.slider { label = "Brightness", icon = "sun", value = 60, unit = "%", orientation = "vertical", on_change = cmd("dim", { id = "kitchen" }) },
-  ui.slider { label = "Volume", icon = "volume-2", value = 35, orientation = "vertical", on_change = cmd("volume") },
+ui.group {
+  direction = "row",
+  gap = 6,
+  ui.slider {
+    label = "Brightness",
+    icon = "sun",
+    value = 60,
+    unit = "%",
+    orientation = "vertical",
+    on_change = cmd("dim", { id = "kitchen" }),
+  },
+  ui.slider {
+    label = "Volume",
+    icon = "volume-2",
+    value = 35,
+    orientation = "vertical",
+    on_change = cmd("volume"),
+  },
 }
 ```
 
@@ -268,16 +618,51 @@ ui.group { direction = "row", gap = 6,
 | `label`, `unit`, `icon` | text, a unit after the value, and a Lucide icon on the track |
 | `orientation` | `horizontal` (default) or `vertical` |
 
+### Horizontal
+
+<img src="images/widgets/slider-horizontal.png" alt="ui.slider: Horizontal" width="300">
+
+```lua
+ui.slider {
+  label = "Thermostat",
+  icon = "thermometer",
+  min = 60,
+  max = 80,
+  value = 68,
+  unit = "°",
+  on_change = cmd("thermostat"),
+}
+```
+
+### Stepped
+
+<img src="images/widgets/slider-stepped.png" alt="ui.slider: Stepped" width="300">
+
+```lua
+ui.slider {
+  label = "Fan speed",
+  icon = "fan",
+  min = 0,
+  max = 5,
+  step = 1,
+  value = 2,
+  on_change = cmd("fan_speed"),
+}
+```
+
 ## ui.choice
 
 Pick one of a few options: a scene, a mode. The current one is highlighted; tapping another runs the command.
 
-<img src="images/widgets/choice.png" alt="ui.choice" width="270">
+<img src="images/widgets/choice.png" alt="ui.choice" width="300">
 
 ```lua
-ui.choice { label = "Scene", value = state.scene,
+ui.choice {
+  label = "Scene",
+  value = "Day",
   options = { "Day", { value = "movie", label = "Movie night" }, "Off" },
-  on_change = cmd("scene") }   -- runs with value = the option's value
+  on_change = cmd("scene"),
+}
 ```
 
 | Option | |
@@ -286,6 +671,56 @@ ui.choice { label = "Scene", value = state.scene,
 | `value` | the current option, from the module |
 | `on_change` | `cmd("name", args)`: runs with `value` added |
 | `label` | a caption |
+
+### Modes
+
+<img src="images/widgets/choice-modes.png" alt="ui.choice: Modes" width="300">
+
+```lua
+ui.choice {
+  label = "Heat pump",
+  value = "auto",
+  options = { { value = "heat", label = "Heat" }, { value = "cool", label = "Cool" }, { value = "auto", label = "Auto" }, { value = "off", label = "Off" } },
+  on_change = cmd("hvac_mode"),
+}
+```
+
+## ui.button
+
+Runs one of the module's commands when tapped: refresh, run a scene, snooze. Shows the command's error if it fails.
+
+<img src="images/widgets/button.png" alt="ui.button" width="270">
+
+```lua
+ui.button {
+  label = "Movie night",
+  icon = "clapperboard",
+  on_tap = cmd("scene", { name = "movie" }),
+}
+```
+
+| Option | |
+|---|---|
+| `label`, `icon` | text and a Lucide icon |
+| `on_tap` | `cmd("name", args)`: the command it runs |
+
+### A row of actions
+
+<img src="images/widgets/button-a-row-of-actions.png" alt="ui.button: A row of actions" width="390">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 3,
+  ui.button { label = "Refresh", icon = "refresh-cw", on_tap = cmd("refresh") },
+  ui.button {
+    label = "Snooze",
+    icon = "alarm-clock-off",
+    on_tap = cmd("snooze", { minutes = 10 }),
+  },
+  ui.button { label = "All off", icon = "power", on_tap = cmd("all_off") },
+}
+```
 
 ## ui.image
 
@@ -326,55 +761,62 @@ ui.audio { data = state.clip.data, type = state.clip.type, label = "Next meeting
 | `label` | shown beside the button |
 | `autoplay` | `true` plays each new clip as it arrives (not the one already there when the page loads) |
 
-## ui.badge
+## ui.title
 
-A small count or label in a tone.
+A heading for a page or a group of panels, with no panel behind it. Themes can use the same thing as <Title> from @dashboard/layout.
 
-<img src="images/widgets/badge.png" alt="ui.badge" width="270">
+<img src="images/widgets/title.png" alt="ui.title" width="300">
 
 ```lua
-ui.group { direction = "row", gap = 2,
-  ui.badge { text = "live", tone = "good" },
-  ui.badge { text = 3, tone = "warn" },
-  ui.badge { text = "down", tone = "bad" },
-  ui.badge { text = "idle", tone = "muted" },
-}
+ui.title { text = "Charts", sub = "2 of 10" }
 ```
 
 | Option | |
 |---|---|
-| `text` | a string or number |
-| `tone` | `good`, `warn`, `bad` or `muted` |
+| `text`, `sub` | the title, and details |
+| `align` | `left` (default), `center` or `right` |
+| `details` | `below` (default), or `beside`: to the right of a left-aligned title, to the left of a right-aligned one |
+| `icon` | a Lucide icon before the title |
+| `size` | `small`, `medium` or `large` (default) |
 
-## ui.icon
+### Centered, with an icon
 
-A Lucide icon by name, sized in pixels and colored like the text around it.
-
-<img src="images/widgets/icon.png" alt="ui.icon" width="270">
+<img src="images/widgets/title-centered-with-an-icon.png" alt="ui.title: Centered, with an icon" width="300">
 
 ```lua
-ui.group { direction = "row", gap = 4,
-  ui.icon { name = "sun", size = 28 }, ui.icon { name = "cloud-rain", size = 28 },
-  ui.icon { name = "bell", size = 28 }, ui.icon { name = "server", size = 28 },
-}
+ui.title { text = "Garden", sub = "3 zones · next run 6:00", icon = "sprout", align = "center" }
 ```
 
-| Option | |
-|---|---|
-| `name` | a Lucide icon name from web/src/widgets/icons.tsx |
-| `size` | in px (default 20) |
+### Details beside
+
+<img src="images/widgets/title-details-beside.png" alt="ui.title: Details beside" width="300">
+
+```lua
+ui.title { text = "Status", sub = "all systems normal", details = "beside", size = "medium" }
+```
+
+### Right-aligned, details beside
+
+<img src="images/widgets/title-right-aligned-details-beside.png" alt="ui.title: Right-aligned, details beside" width="300">
+
+```lua
+ui.title {
+  text = "Today",
+  sub = "Saturday",
+  align = "right",
+  details = "beside",
+  size = "medium",
+}
+```
 
 ## ui.clock
 
 A clock that ticks in the browser, digital or analog, in any time zone.
 
-<img src="images/widgets/clock.png" alt="ui.clock" width="390">
+<img src="images/widgets/clock.png" alt="ui.clock" width="270">
 
 ```lua
-ui.group { direction = "row", gap = 6,
-  ui.clock { tz = "Europe/London", label = "London", date = "ddd, MMM D" },
-  ui.clock { tz = "Asia/Tokyo", label = "Tokyo", style = "analog" },
-}
+ui.clock { tz = "Europe/London", label = "London", date = "ddd, MMM D" }
 ```
 
 | Option | |
@@ -386,6 +828,27 @@ ui.group { direction = "row", gap = 6,
 | `format` | e.g. `h:mm a` |
 | `date` | `true`, or a format like `dddd, MMMM D` |
 
+### Analog
+
+<img src="images/widgets/clock-analog.png" alt="ui.clock: Analog" width="270">
+
+```lua
+ui.clock { tz = "Asia/Tokyo", label = "Tokyo", style = "analog" }
+```
+
+### Seconds and 12-hour time
+
+<img src="images/widgets/clock-seconds-and-12-hour-time.png" alt="ui.clock: Seconds and 12-hour time" width="270">
+
+```lua
+ui.clock {
+  tz = "America/Los_Angeles",
+  label = "Los Angeles",
+  seconds = true,
+  format = "h:mm:ss a",
+}
+```
+
 ## ui.group
 
 Stacks other widgets in a row or a column. Most views are a group at the top.
@@ -393,12 +856,21 @@ Stacks other widgets in a row or a column. Most views are a group at the top.
 <img src="images/widgets/group.png" alt="ui.group" width="390">
 
 ```lua
-ui.group { direction = "column", gap = 3,
-  ui.group { direction = "row", gap = 6,
+ui.group {
+  direction = "column",
+  gap = 3,
+  ui.group {
+    direction = "row",
+    gap = 6,
     ui.stat { value = "1.12", label = "Load", icon = "activity" },
     ui.stat { value = "23d", label = "Uptime", icon = "timer" },
   },
-  ui.line { points = state.cpu_history, unit = "%", min = 0, max = 100 },
+  ui.line {
+    points = { 22, 25, 31, 28, 35, 41, 38, 33, 29, 34, 46, 52, 48, 41, 37, 33, 30, 36, 39, 35 },
+    unit = "%",
+    min = 0,
+    max = 100,
+  },
 }
 ```
 

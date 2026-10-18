@@ -35,6 +35,11 @@ open "http://localhost:5173/?demo"
 `?demo` runs the UI on made-up data with no server and no API keys; it's what the screenshots
 above are taken from. Drop `?demo` and add keys to `.env` to see your own data.
 
+| Link | Shows |
+|---|---|
+| [`/?demo`](http://localhost:5173/?demo) | the default theme on demo data |
+| [`/?demo&theme=gallery`](http://localhost:5173/?demo&theme=gallery) | every built-in widget and its variants, a page per group (also in [docs/widgets.md](docs/widgets.md)) |
+
 ## How it works
 
 ```

@@ -1,7 +1,7 @@
 //! Validation of widget trees produced by Lua `view` functions.
 use serde_json::{Map, Value, json};
 
-pub const WIDGETS: &[&str] = &["stat", "ticker", "list", "row", "text", "markdown", "badge", "icon", "group", "clock", "gauge", "line", "bar", "donut", "image", "audio", "progress", "button", "toggle", "slider", "choice"];
+pub const WIDGETS: &[&str] = &["stat", "ticker", "list", "row", "text", "markdown", "badge", "icon", "group", "clock", "gauge", "line", "bar", "donut", "image", "audio", "progress", "button", "toggle", "slider", "choice", "title"];
 
 /// Custom widgets: names found in the WIDGETS_DIR folders, each drawn by a component the web build
 /// picks up from the same folders (web/plugins/extensions.ts applies the same naming rules).
