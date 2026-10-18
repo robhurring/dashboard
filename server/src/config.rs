@@ -67,3 +67,17 @@ pub fn default_application_file(root: &std::path::Path) -> PathBuf {
     let local = root.join("local/application.lua");
     if local.is_file() { local } else { root.join("application.lua") }
 }
+
+/// Loads a `.env` file into the environment if there is one, its values overriding anything already
+/// set (a stale export in your shell profile, say); variables it doesn't mention are left alone.
+/// Production images have no `.env`, so there it does nothing. Returns whether a file was loaded.
+pub fn load_dotenv(path: &std::path::Path) -> bool {
+    match dotenvy::from_path_override(path) {
+        Ok(()) => true,
+        Err(e) if e.not_found() => false,
+        Err(e) => {
+            eprintln!("warning: could not read {}: {e}", path.display());
+            false
+        }
+    }
+}

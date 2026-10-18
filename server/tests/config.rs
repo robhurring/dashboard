@@ -36,3 +36,20 @@ async fn the_starter_application_lua_in_local_example_loads() {
 fn libs_dir_defaults_to_local_then_the_repo_lib() {
     assert_eq!(config(&[]).libs_dirs, vec![PathBuf::from("local/lib"), PathBuf::from("lib")]);
 }
+
+#[test]
+fn dotenv_values_override_the_environment_and_the_rest_is_left_alone() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(".env");
+    std::fs::write(&path, "DOTENV_TEST_KEY=from-dotenv\n").unwrap();
+    // SAFETY: names unique to this test.
+    unsafe {
+        std::env::set_var("DOTENV_TEST_KEY", "from-the-shell");
+        std::env::set_var("DOTENV_TEST_OTHER", "shell-only");
+    }
+    assert!(dashboard::config::load_dotenv(&path));
+    assert_eq!(std::env::var("DOTENV_TEST_KEY").unwrap(), "from-dotenv");
+    assert_eq!(std::env::var("DOTENV_TEST_OTHER").unwrap(), "shell-only");
+    // No file (production): nothing happens.
+    assert!(!dashboard::config::load_dotenv(&dir.path().join("missing.env")));
+}

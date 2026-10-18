@@ -9,8 +9,8 @@ import pkg from "./package.json" with { type: "json" };
 const repoRoot = path.resolve(import.meta.dirname, "..");
 
 export default defineConfig(({ mode }) => {
-  // The same folder lists the server reads, from the environment or the repo's .env.
-  const env = { ...loadEnv(mode, repoRoot, ""), ...process.env };
+  // The same settings the server reads: the repo's .env, which overrides the shell environment.
+  const env = { ...process.env, ...loadEnv(mode, repoRoot, "") };
   const folders = {
     modulesDirs: pathList(env.MODULES_DIR || "local/modules:modules", repoRoot),
     themesDirs: pathList(env.THEMES_DIR || "local/themes:web/themes", repoRoot),
