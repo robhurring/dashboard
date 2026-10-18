@@ -9,6 +9,9 @@ usage() { echo "usage: bin/dev    run Redis, the Rust server (port 4000) and Vit
 
 docker compose up -d redis
 [[ -f .env ]] || cp .env.example .env
+# The repo's .env wins over anything already exported in your shell (a key in ~/.zshrc, say): load it
+# here, before the process runner, which would otherwise only fill in what the shell hasn't set.
+set -a; . ./.env; set +a
 
 # Procfile runners start commands through the login shell, whose init can reorder PATH and pick a
 # different node. Pin the one this shell resolves so the web process uses it too.
