@@ -8,7 +8,7 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?theme=gallery` to see every widget live.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [progress](#uiprogress) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [ticker](#uiticker) · [progress](#uiprogress) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [list](#uilist) · [text](#uitext) · [markdown](#uimarkdown) · [button](#uibutton) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [image](#uiimage) · [audio](#uiaudio) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
@@ -205,6 +205,87 @@ bin/deploy prod
 |---|---|
 | `text` | markdown, GitHub-flavoured |
 | `links` | `false` renders links as plain text, for screens that must never navigate away (default: links open in a new tab) |
+
+## ui.button
+
+Runs one of the module's commands when tapped: refresh, run a scene, snooze. Shows the command's error if it fails.
+
+<img src="images/widgets/button.png" alt="ui.button" width="270">
+
+```lua
+ui.button { label = "Movie night", icon = "clapperboard", on_tap = cmd("scene", { name = "movie" }) }
+```
+
+| Option | |
+|---|---|
+| `label`, `icon` | text and a Lucide icon |
+| `on_tap` | `cmd("name", args)`: the command it runs |
+
+## ui.toggle
+
+On or off, iOS style: a switch in a row, a pill to slide (upright like a wall switch), or a Control Center tile. Flips at once; goes back and says why if the command fails.
+
+<img src="images/widgets/toggle.png" alt="ui.toggle" width="390">
+
+```lua
+ui.group { direction = "column", gap = 4,
+  ui.toggle { label = "Kitchen lights", icon = "lightbulb", icon_off = "lightbulb-off", on = true,
+              on_change = cmd("light", { id = "kitchen" }) },        -- the command gets value = true/false
+  ui.group { direction = "row", gap = 4,
+    ui.toggle { label = "Porch", style = "slide", orientation = "vertical", icon = "lamp", on = false, on_change = cmd("porch") },
+    ui.toggle { label = "Fan", style = "tile", icon = "fan", sub = "Bedroom", on = true, on_change = cmd("fan") },
+  },
+}
+```
+
+| Option | |
+|---|---|
+| `on` | the current state, from the module |
+| `on_change` | `cmd("name", args)`: runs with `value = true` or `false` added to args |
+| `label`, `sub` | text |
+| `icon`, `icon_off` | a Lucide icon, and one for while it's off |
+| `style` | `switch` (default), `slide` or `tile` |
+| `orientation` | for `slide`: `horizontal` (default) or `vertical` |
+| `tone` | the on color (default `good`, green) |
+
+## ui.slider
+
+A Control Center slider: a fat track that fills as you drag, horizontal or upright. Sends the value once, when let go.
+
+<img src="images/widgets/slider.png" alt="ui.slider" width="270">
+
+```lua
+ui.group { direction = "row", gap = 6,
+  ui.slider { label = "Brightness", icon = "sun", value = 60, unit = "%", orientation = "vertical", on_change = cmd("dim", { id = "kitchen" }) },
+  ui.slider { label = "Volume", icon = "volume-2", value = 35, orientation = "vertical", on_change = cmd("volume") },
+}
+```
+
+| Option | |
+|---|---|
+| `value`, `min`, `max`, `step` | the current value (from the module) and its range (default 0 to 100, step 1) |
+| `on_change` | `cmd("name", args)`: runs with `value` added, once you let go |
+| `label`, `unit`, `icon` | text, a unit after the value, and a Lucide icon on the track |
+| `orientation` | `horizontal` (default) or `vertical` |
+
+## ui.choice
+
+Pick one of a few options: a scene, a mode. The current one is highlighted; tapping another runs the command.
+
+<img src="images/widgets/choice.png" alt="ui.choice" width="270">
+
+```lua
+ui.choice { label = "Scene", value = state.scene,
+  options = { "Day", { value = "movie", label = "Movie night" }, "Off" },
+  on_change = cmd("scene") }   -- runs with value = the option's value
+```
+
+| Option | |
+|---|---|
+| `options` | strings, or `{ value, label }` |
+| `value` | the current option, from the module |
+| `on_change` | `cmd("name", args)`: runs with `value` added |
+| `label` | a caption |
 
 ## ui.image
 

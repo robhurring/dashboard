@@ -93,6 +93,41 @@ function ui.bar(props) end
 ---@return Widget
 function ui.donut(props) end
 
+--- A button that runs a command: `ui.button { label = "Refresh", icon = "refresh-cw", on_tap = cmd("refresh") }`.
+---@param props { label?: string, icon?: string, on_tap?: Action }
+---@return Widget
+function ui.button(props) end
+
+--- On or off, iOS style. `on_change`'s command runs with `value = true|false` added to its args.
+---@param props { label?: string, sub?: string, on?: boolean, on_change?: Action, icon?: string, icon_off?: string, style?: "switch"|"slide"|"tile", orientation?: "horizontal"|"vertical", tone?: string }
+---@return Widget
+function ui.toggle(props) end
+
+--- A Control Center slider. `on_change`'s command runs with `value` added, once the finger lifts.
+---@param props { label?: string, value?: number, min?: number, max?: number, step?: number, unit?: string, icon?: string, orientation?: "horizontal"|"vertical", on_change?: Action }
+---@return Widget
+function ui.slider(props) end
+
+--- Pick one option. `on_change`'s command runs with `value` = the option's value added.
+---@param props { label?: string, value?: string, options: (string|{ value: string, label?: string })[], on_change?: Action }
+---@return Widget
+function ui.choice(props) end
+
+--- A horizontal bar of value out of max, colored by `stops` (percent full) like ui.gauge.
+---@param props { value: number, max?: number, label?: string, text?: string, stops?: table<number, string>, tone?: string }
+---@return Widget
+function ui.progress(props) end
+
+--- An image: base64 `data` (with its `type`) or a URL in `src`.
+---@param props { data?: string, src?: string, type?: string, alt?: string, fit?: "contain"|"cover" }
+---@return Widget
+function ui.image(props) end
+
+--- A clip with a play button: base64 `data` or a URL in `src`. `autoplay` plays each new clip as it arrives.
+---@param props { data?: string, src?: string, type?: string, label?: string, autoplay?: boolean }
+---@return Widget
+function ui.audio(props) end
+
 --- Build an action prop: `on_tap = cmd("dismiss", { name = "incident" })`.
 ---@param action string
 ---@param args? table

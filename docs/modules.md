@@ -152,6 +152,8 @@ shows every widget with a picture, its Lua and its options.
 | `ui.markdown { text, links }` | full markdown: headings, links, tables, code blocks, task lists |
 | `ui.text { text }`, `ui.badge { text, tone }`, `ui.icon { name }` | text bits |
 | `ui.clock { tz, style, format, date }` | a clock that ticks in the browser |
+| `ui.button`, `ui.toggle`, `ui.slider`, `ui.choice` | controls: each runs a command, with the value it sets added to the args |
+| `ui.progress`, `ui.image`, `ui.audio` | a fill bar, an image, a playable clip |
 | `ui.group { direction, gap, ... }` | stack any of the above |
 
 ## Components and commands, end to end

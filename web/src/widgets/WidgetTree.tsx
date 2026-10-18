@@ -13,6 +13,7 @@ import { Badge, Text } from "./Text";
 import { Markdown } from "./Markdown";
 import { AudioWidget, ImageWidget } from "./Media";
 import { Progress } from "./Progress";
+import { Button, Choice, Slider, Toggle } from "./Controls";
 import { Ticker } from "./Ticker";
 
 export type Send = (action: string, args?: JsonValue) => Promise<void>;
@@ -23,7 +24,7 @@ function IconWidget({ name, size = 20 }: { name?: string; size?: number }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const WIDGETS: Record<string, ComponentType<any>> = { icon: IconWidget, stat: Stat, ticker: Ticker, list: List, row: Row, clock: Clock, group: Group, gauge: Gauge, line: Line, bar: BarWidget, donut: Donut, text: Text, markdown: Markdown, badge: Badge, image: ImageWidget, audio: AudioWidget, progress: Progress };
+const WIDGETS: Record<string, ComponentType<any>> = { icon: IconWidget, stat: Stat, ticker: Ticker, list: List, row: Row, clock: Clock, group: Group, gauge: Gauge, line: Line, bar: BarWidget, donut: Donut, text: Text, markdown: Markdown, badge: Badge, image: ImageWidget, audio: AudioWidget, progress: Progress, button: Button, toggle: Toggle, slider: Slider, choice: Choice };
 
 /*
  * Custom widgets: files in the WIDGETS_DIR folders (local/widgets by default), each default-exporting a
@@ -57,6 +58,29 @@ type Action = { command: string; args: JsonValue };
 const isAction = (v: unknown): v is Action =>
   typeof v === "object" && v !== null && typeof (v as { command?: unknown }).command === "string";
 
+/**
+ * What an `on_*` prop becomes: a function that runs the command. A control passes its new value, which
+ * joins the command's args as `value`. It resolves to null when the command succeeded, or its error.
+ */
+export type Handler = (value?: JsonValue) => Promise<string | null>;
+
+function handler(send: Send, action: Action): Handler {
+  return (raw) => {
+    // A widget may pass its click event straight through (onClick={on_tap}); that isn't a value.
+    const isEvent = typeof raw === "object" && raw !== null && ("nativeEvent" in raw || (typeof Event !== "undefined" && raw instanceof Event));
+    const value = isEvent ? undefined : raw;
+    const base = action.args && typeof action.args === "object" && !Array.isArray(action.args) ? action.args : {};
+    const args = value === undefined ? action.args : ({ ...base, value } as JsonValue);
+    return send(action.command, args).then(
+      () => null,
+      (e: Error) => {
+        console.warn(`${action.command} failed: ${e.message}`);
+        return e.message;
+      },
+    );
+  };
+}
+
 /** Renders a Lua view tree. `on_*` props become handlers that send the named command. */
 export function WidgetTree({ node, send }: { node: WidgetNode; send: Send }): ReactNode {
   const Widget = WIDGETS[node.type] ?? customWidget(node.type);
@@ -67,7 +91,7 @@ export function WidgetTree({ node, send }: { node: WidgetNode; send: Send }): Re
   for (const [key, value] of Object.entries(node.props ?? {})) {
     props[key] =
       key.startsWith("on_") && isAction(value)
-        ? () => void send(value.command, value.args).catch((e: Error) => console.warn(`${value.command} failed: ${e.message}`))
+        ? handler(send, value)
         : value;
   }
   const children = (node.children ?? []).map((child, i) => <WidgetTree key={i} node={child} send={send} />);

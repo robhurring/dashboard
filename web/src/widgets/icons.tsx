@@ -1,4 +1,5 @@
 import type { ComponentType, CSSProperties } from "react";
+import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import {
   Activity, AtSign, Bell, Hash, Inbox, CalendarDays, ChartLine, Circle, Clock, Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSnow,
   CloudSun, Cpu, Database, Gauge, HardDrive, ListTodo, Mail, MemoryStick, MessageSquare, Moon, Newspaper, Rss, Server, Sparkles,
@@ -54,7 +55,27 @@ const ICONS: Record<string, ComponentType<IconProps>> = {
   "trending-up": TrendingUp,
 };
 
+const LUCIDE = new Set<string>(iconNames);
+
+/**
+ * A Lucide icon by name. The common ones above are bundled; any other Lucide name (lightbulb, fan,
+ * thermometer, ...) loads on demand. Unknown names draw a plain circle.
+ */
 export function Icon({ name, size = 20, className, style }: { name: string; size?: number; className?: string; style?: CSSProperties }) {
-  const Component = ICONS[name] ?? Circle;
-  return <Component size={size} className={className} style={style} aria-hidden data-icon={name} />;
+  const Bundled = ICONS[name];
+  if (Bundled) return <Bundled size={size} className={className} style={style} aria-hidden data-icon={name} />;
+  if (LUCIDE.has(name)) {
+    return (
+      <DynamicIcon
+        name={name as IconName}
+        size={size}
+        className={className}
+        style={style}
+        aria-hidden
+        data-icon={name}
+        fallback={() => <Circle size={size} className={className} style={style} aria-hidden data-icon={name} />}
+      />
+    );
+  }
+  return <Circle size={size} className={className} style={style} aria-hidden data-icon={name} />;
 }
