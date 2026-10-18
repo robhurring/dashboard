@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { WidgetTree } from "./WidgetTree";
 import type { WidgetNode } from "../data/reduce";
-import { gaugeColor, palette } from "./Charts";
+import { GAUGE_FIGURE_WIDTH, donutCenterSize, gaugeColor, gaugeFigureSize, palette } from "./Charts";
 
 const node = (type: string, props: WidgetNode["props"] = {}): WidgetNode => ({ type, props, children: [] });
 
@@ -21,6 +21,20 @@ describe("chart widgets", () => {
     expect(document.querySelector('[data-icon="redis"]')).not.toBeNull();
     render(<WidgetTree node={node("gauge", { value: 5, label: "CPU", icon: "cpu" })} send={vi.fn()} />);
     expect(document.querySelector('[data-icon="cpu"]')).not.toBeNull();
+  });
+
+  test("gauge figure shrinks to fit three digits and a unit inside the arc", () => {
+    // Widths a semibold tabular digit and the smaller unit take, as a share of the font size.
+    const width = (figure: string, unit: string, size: number) => figure.length * 0.62 * size + unit.length * 0.6 * size * 0.45;
+    expect(width("100", "%", gaugeFigureSize("100", "%"))).toBeLessThanOrEqual(GAUGE_FIGURE_WIDTH);
+    expect(width("12", " mph", gaugeFigureSize("12", " mph"))).toBeLessThanOrEqual(GAUGE_FIGURE_WIDTH);
+    expect(gaugeFigureSize("12.5k", "%")).toBeLessThan(gaugeFigureSize("64", "%"));
+    expect(gaugeFigureSize("5", "")).toBe(gaugeFigureSize("4", ""));
+  });
+
+  test("donut center text shrinks to fit the hole", () => {
+    expect(donutCenterSize("$620")).toBeLessThan(donutCenterSize("48"));
+    expect(donutCenterSize("$620") * 4 * 0.62).toBeLessThanOrEqual(52);
   });
 
   test("gauge color: accent with no stops, green below the stops, and the stop's color at a breakpoint; tone overrides the base", () => {

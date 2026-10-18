@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type RefObject } from "react";
 import { LoaderCircle } from "lucide-react";
 import { Icon } from "./icons";
 import { colorOf } from "./Charts";
@@ -50,6 +50,55 @@ export function Button({ label = "", icon, on_tap }: ButtonProps) {
   );
 }
 
+/**
+ * Lets a switch's knob be dragged like iOS: it follows the finger along the track and, let go, lands on
+ * whichever side it's nearer. A drag doesn't count as a tap; a tap (or Enter/Space) still flips it.
+ * `position` is 0 (off) to 1 (on).
+ */
+function useKnobDrag(shown: boolean, setTo: (on: boolean) => void, flip: () => void, vertical: boolean) {
+  const track = useRef<HTMLElement>(null);
+  const knob = useRef<HTMLElement>(null);
+  const [drag, setDrag] = useState<number | null>(null);
+  const start = useRef<{ x: number; y: number; from: number; travel: number } | null>(null);
+  const dragged = useRef(false);
+  const at = (e: PointerEvent) => {
+    const s = start.current!;
+    const moved = vertical ? s.y - e.clientY : e.clientX - s.x;
+    return { moved, position: Math.min(1, Math.max(0, s.from + moved / (s.travel || 1))) };
+  };
+  const handlers = {
+    onPointerDown: (e: PointerEvent) => {
+      const t = track.current, k = knob.current;
+      if (!t || !k) return;
+      const tr = t.getBoundingClientRect(), kr = k.getBoundingClientRect();
+      const inset = vertical ? k.offsetLeft : k.offsetTop;
+      const travel = vertical ? tr.height - kr.height - 2 * inset : tr.width - kr.width - 2 * inset;
+      start.current = { x: e.clientX, y: e.clientY, from: shown ? 1 : 0, travel };
+      dragged.current = false;
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    },
+    onPointerMove: (e: PointerEvent) => {
+      if (!start.current) return;
+      const { moved, position } = at(e);
+      if (!dragged.current && Math.abs(moved) < 4) return;
+      dragged.current = true;
+      setDrag(position);
+    },
+    onPointerUp: (e: PointerEvent) => {
+      if (!start.current) return;
+      const { position } = at(e);
+      start.current = null;
+      setDrag(null);
+      if (dragged.current && position >= 0.5 !== shown) setTo(position >= 0.5);
+    },
+    onPointerCancel: () => { start.current = null; dragged.current = false; setDrag(null); },
+    // The click that ends a drag isn't a tap.
+    onClick: () => { if (dragged.current) { dragged.current = false; return; } flip(); },
+  };
+  const position = drag ?? (shown ? 1 : 0);
+  return { track, knob, handlers, position, dragging: drag !== null, knobProps: { "data-knob": true, "data-position": String(+position.toFixed(3)) } };
+}
+
 type ToggleProps = {
   label?: string; sub?: string; on?: boolean; on_change?: Handler;
   icon?: string; icon_off?: string; style?: "switch" | "slide" | "tile"; orientation?: "horizontal" | "vertical"; tone?: string;
@@ -63,18 +112,25 @@ type ToggleProps = {
 export function Toggle({ label = "", sub, on = false, on_change, icon, icon_off, style = "switch", orientation = "horizontal", tone = "good" }: ToggleProps) {
   const [shown, setShown] = useControlled(on);
   const [error, setError] = useState<string | null>(null);
-  const flip = async () => {
+  const setTo = async (next: boolean) => {
     if (!on_change) return;
-    const next = !shown;
     setShown(next);
     setError(null);
     const failed = await on_change(next);
     if (failed) { setShown(!next); setError(failed); }
   };
+  const flip = () => void setTo(!shown);
+  const vertical = orientation === "vertical";
+  const { track, knob, handlers, position, dragging, knobProps } = useKnobDrag(shown, (v) => void setTo(v), flip, style === "slide" && vertical);
+  // While dragging, the label reads "on" once the knob is past halfway.
+  const lit = dragging ? position >= 0.5 : shown;
+  const off = "color-mix(in srgb, var(--color-ink) 12%, transparent)";
+  const ease = "duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]";
+  // The color fills the track up to the knob and follows it, as on iOS: none at off, all of it at on.
+  const glide = dragging ? "" : `transition-[width,height] ${ease}`;
   const color = colorOf(tone);
   const glyph = shown ? icon : (icon_off ?? icon);
   const common = { type: "button" as const, role: "switch", "aria-checked": shown, "aria-label": label, "data-style": style, "data-orientation": orientation, onClick: flip, "data-swipe": "off" };
-  const ease = "duration-300 ease-[cubic-bezier(0.25,0.8,0.25,1)]";
 
   if (style === "tile") {
     return (
@@ -94,21 +150,27 @@ export function Toggle({ label = "", sub, on = false, on_change, icon, icon_off,
   }
 
   if (style === "slide") {
-    const vertical = orientation === "vertical";
     return (
       <div className={vertical ? "flex flex-col items-center gap-[0.5em]" : ""}>
         <button
           {...common}
-          className={`relative overflow-hidden rounded-full transition-colors ${ease} ${vertical ? "h-[9em] w-[4.2em]" : "h-[3.6em] w-full"}`}
-          style={{ background: shown ? color : "color-mix(in srgb, var(--color-ink) 12%, transparent)" }}
+          {...handlers}
+          ref={track as RefObject<HTMLButtonElement>}
+          data-track
+          className={`relative touch-none select-none overflow-hidden rounded-full transition-colors ${ease} ${vertical ? "h-[9em] w-[4.2em]" : "h-[3.6em] w-full"}`}
+          style={{ background: off }}
         >
-          {!vertical && <span className={`absolute inset-0 flex items-center justify-center font-semibold transition-opacity ${shown ? "text-canvas" : "text-ink-muted"}`}>{label}</span>}
           <span
-            className={`absolute flex items-center justify-center rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] transition-all ${ease} ${
-              vertical
-                ? `left-[0.3em] size-[3.6em] ${shown ? "top-[0.3em]" : "top-[calc(100%-3.9em)]"}`
-                : `top-[0.3em] size-[3em] ${shown ? "left-[calc(100%-3.3em)]" : "left-[0.3em]"}`
-            }`}
+            data-fill
+            className={`absolute rounded-full ${glide} ${vertical ? "inset-x-0 bottom-0" : "inset-y-0 left-0"}`}
+            style={{ background: color, ...(vertical ? { height: `calc(4.2em + ${position} * (100% - 4.2em))` } : { width: `calc(3.6em + ${position} * (100% - 3.6em))` }) }}
+          />
+          {!vertical && <span className={`absolute inset-0 flex items-center justify-center font-semibold transition-opacity ${lit ? "text-canvas" : "text-ink-muted"}`}>{label}</span>}
+          <span
+            ref={knob}
+            {...knobProps}
+            className={`absolute flex items-center justify-center rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.35)] ${dragging ? "" : `transition-[left,top] ${ease}`} ${vertical ? "left-[0.3em] size-[3.6em]" : "top-[0.3em] size-[3em]"}`}
+            style={vertical ? { top: `calc(100% - 3.9em - ${position} * (100% - 4.2em))` } : { left: `calc(0.3em + ${position} * (100% - 3.6em))` }}
           >
             {glyph && <Icon name={glyph} size={20} className="text-black/70" />}
           </span>
@@ -121,14 +183,20 @@ export function Toggle({ label = "", sub, on = false, on_change, icon, icon_off,
 
   return (
     <div>
-      <button {...common} className="flex w-full items-center justify-between gap-[0.75em] text-left">
+      <button {...common} {...handlers} className="flex w-full touch-pan-y select-none items-center justify-between gap-[0.75em] text-left">
         {glyph && <Icon name={glyph} size={22} className={shown ? "text-accent" : "text-ink-muted"} />}
         <span className="min-w-0 flex-1">
           <span className="type-row block truncate">{label}</span>
           {sub && <span className="type-sub block truncate">{sub}</span>}
         </span>
-        <span className={`relative h-[1.9em] w-[3.15em] shrink-0 rounded-full transition-colors ${ease}`} style={{ background: shown ? color : "color-mix(in srgb, var(--color-ink) 18%, transparent)" }}>
-          <span className={`absolute top-[0.15em] size-[1.6em] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.3)] transition-[left] ${ease} ${shown ? "left-[1.4em]" : "left-[0.15em]"}`} />
+        <span ref={track} data-track className="relative h-[1.9em] w-[3.15em] shrink-0 overflow-hidden rounded-full" style={{ background: "color-mix(in srgb, var(--color-ink) 18%, transparent)" }}>
+          <span data-fill className={`absolute inset-y-0 left-0 rounded-full ${glide}`} style={{ background: color, width: `calc(1.9em + ${position} * 1.25em)` }} />
+          <span
+            ref={knob}
+            {...knobProps}
+            className={`absolute top-[0.15em] size-[1.6em] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.3)] ${dragging ? "" : `transition-[left] ${ease}`}`}
+            style={{ left: `calc(0.15em + ${position} * 1.25em)` }}
+          />
         </span>
       </button>
       <Failure error={error} />
@@ -142,19 +210,28 @@ type SliderProps = {
 };
 
 /**
- * A Control Center slider: a fat rounded track that fills as you drag, horizontal or upright. It shows
- * the value while dragging and sends it once, when let go. Arrow keys move it a step at a time.
+ * A Control Center slider: a fat rounded track that fills as you drag, horizontal or upright. The fill
+ * follows the finger exactly while the value snaps to `step`; let go, the fill settles on the step and
+ * the value is sent once. Arrow keys move it a step at a time.
  */
 export function Slider({ label = "", min = 0, max = 100, step = 1, value = 0, unit = "", on_change, orientation = "horizontal", icon }: SliderProps) {
   const [shown, setShown] = useControlled(value);
   const [error, setError] = useState<string | null>(null);
-  const dragging = useRef(false);
+  // The raw position under the finger (0..1) while dragging; null otherwise.
+  const [drag, setDrag] = useState<number | null>(null);
   const vertical = orientation === "vertical";
   const snap = (v: number) => Math.min(max, Math.max(min, Math.round((v - min) / step) * step + min));
-  const fromPointer = (el: HTMLElement, x: number, y: number) => {
+  const fractionAt = (el: HTMLElement, x: number, y: number) => {
     const r = el.getBoundingClientRect();
     const fraction = vertical ? (r.bottom - y) / (r.height || 1) : (x - r.left) / (r.width || 1);
-    return snap(min + Math.min(1, Math.max(0, fraction)) * (max - min));
+    return Math.min(1, Math.max(0, fraction));
+  };
+  const valueAt = (fraction: number) => snap(min + fraction * (max - min));
+  const follow = (el: HTMLElement, x: number, y: number) => {
+    const f = fractionAt(el, x, y);
+    setDrag(f);
+    setShown(valueAt(f));
+    return f;
   };
   const commit = async (v: number) => {
     if (!on_change || v === value) return;
@@ -162,7 +239,8 @@ export function Slider({ label = "", min = 0, max = 100, step = 1, value = 0, un
     const failed = await on_change(v);
     if (failed) { setShown(value); setError(failed); }
   };
-  const pct = max > min ? ((shown - min) / (max - min)) * 100 : 0;
+  const fill = drag ?? (max > min ? (shown - min) / (max - min) : 0);
+  const offset = +((1 - fill) * 100).toFixed(3);
   const readout = <span className="type-label tabular-nums">{Number.isInteger(shown) ? shown : shown.toFixed(1)}{unit}</span>;
   return (
     <div className={vertical ? "flex flex-col items-center gap-[0.5em]" : ""}>
@@ -175,30 +253,32 @@ export function Slider({ label = "", min = 0, max = 100, step = 1, value = 0, un
         aria-valuemax={max}
         aria-valuenow={shown}
         data-swipe="off"
-        className={`relative touch-none overflow-hidden rounded-[1.1em] bg-ink/10 outline-none focus-visible:ring-2 focus-visible:ring-accent ${vertical ? "h-[9em] w-[4.2em]" : "h-[3em] w-full"}`}
+        className={`relative touch-none select-none overflow-hidden rounded-[1.1em] bg-ink/10 outline-none focus-visible:ring-2 focus-visible:ring-accent ${vertical ? "h-[9em] w-[4.2em]" : "h-[3em] w-full"}`}
         onPointerDown={(e) => {
-          dragging.current = true;
           e.currentTarget.setPointerCapture?.(e.pointerId);
-          setShown(fromPointer(e.currentTarget, e.clientX, e.clientY));
+          follow(e.currentTarget, e.clientX, e.clientY);
         }}
-        onPointerMove={(e) => { if (dragging.current) setShown(fromPointer(e.currentTarget, e.clientX, e.clientY)); }}
+        onPointerMove={(e) => { if (drag !== null) follow(e.currentTarget, e.clientX, e.clientY); }}
         onPointerUp={(e) => {
-          if (!dragging.current) return;
-          dragging.current = false;
-          const v = fromPointer(e.currentTarget, e.clientX, e.clientY);
+          if (drag === null) return;
+          const v = valueAt(fractionAt(e.currentTarget, e.clientX, e.clientY));
+          setDrag(null);
           setShown(v);
           void commit(v);
         }}
-        onPointerCancel={() => { dragging.current = false; setShown(value); }}
+        onPointerCancel={() => { setDrag(null); setShown(value); }}
         onKeyDown={(e) => {
           const delta = { ArrowRight: step, ArrowUp: step, ArrowLeft: -step, ArrowDown: -step }[e.key];
           if (delta !== undefined) { e.preventDefault(); setShown(snap(shown + delta)); }
         }}
         onKeyUp={(e) => { if (["ArrowRight", "ArrowUp", "ArrowLeft", "ArrowDown"].includes(e.key)) void commit(shown); }}
       >
+        {/* Moved with a transform, not resized: no layout per frame. Glides to the step when let go, never while dragging. */}
         <div
-          className={`absolute bg-ink transition-[width,height] duration-75 ${vertical ? "inset-x-0 bottom-0" : "inset-y-0 left-0"}`}
-          style={vertical ? { height: `${pct}%` } : { width: `${pct}%` }}
+          data-fill
+          data-dragging={drag !== null}
+          className={`absolute inset-0 bg-ink will-change-transform ${drag !== null ? "" : "transition-transform duration-200 ease-out"}`}
+          style={{ transform: vertical ? `translateY(${offset}%)` : `translateX(-${offset}%)` }}
         />
         {icon && (
           <span className={`absolute ${vertical ? "bottom-[0.8em] left-1/2 -translate-x-1/2" : "left-[0.9em] top-1/2 -translate-y-1/2"} mix-blend-difference`}>

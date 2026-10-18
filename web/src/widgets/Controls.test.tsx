@@ -23,6 +23,38 @@ describe("ui.button", () => {
 });
 
 describe("ui.toggle", () => {
+  /** Lays out a switch's track (60px wide) and knob (30px, inset 0) for drag math. */
+  const layout = (sw: HTMLElement) => {
+    const rect = (width: number) => () => ({ left: 0, top: 0, width, height: 30, right: width, bottom: 30, x: 0, y: 0, toJSON: () => ({}) });
+    sw.querySelector<HTMLElement>("[data-track]")!.getBoundingClientRect = rect(60);
+    sw.querySelector<HTMLElement>("[data-knob]")!.getBoundingClientRect = rect(30);
+  };
+
+  test("dragging the knob moves it with the finger; past halfway it lands on, short of it it springs back", () => {
+    const { send } = draw("toggle", { label: "Porch", on: false, on_change: cmd("porch") });
+    const sw = screen.getByRole("switch", { name: "Porch" });
+    layout(sw);
+    const knob = sw.querySelector<HTMLElement>("[data-knob]")!;
+    // 30px of travel: 10px is a third of the way.
+    fireEvent.pointerDown(sw, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(sw, { clientX: 20, clientY: 10, pointerId: 1 });
+    expect(knob).toHaveAttribute("data-position", "0.333");
+    fireEvent.pointerUp(sw, { clientX: 20, clientY: 10, pointerId: 1 });
+    fireEvent.click(sw);
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    expect(send).not.toHaveBeenCalled();
+    expect(knob).toHaveAttribute("data-position", "0");
+
+    fireEvent.pointerDown(sw, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(sw, { clientX: 30, clientY: 10, pointerId: 1 });
+    fireEvent.pointerUp(sw, { clientX: 30, clientY: 10, pointerId: 1 });
+    fireEvent.click(sw);
+    expect(sw).toHaveAttribute("aria-checked", "true");
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledWith("porch", { value: true });
+    expect(knob).toHaveAttribute("data-position", "1");
+  });
+
   test("flips at once and sends the new value with the command's args", () => {
     const { send } = draw("toggle", { label: "Kitchen", on: false, on_change: cmd("set_light", { id: "kitchen" }) });
     const sw = screen.getByRole("switch", { name: "Kitchen" });
@@ -98,6 +130,23 @@ describe("ui.slider", () => {
     expect(slider).toHaveAttribute("aria-valuenow", "75");
     fireEvent.pointerUp(slider, { clientX: 100, clientY: 50, pointerId: 1 });
     expect(send).toHaveBeenCalledWith("volume", { value: 75 });
+  });
+
+  test("while dragging, the fill follows the finger exactly and only the value snaps; let go, it settles on the step", () => {
+    draw("slider", { label: "Fan", min: 0, max: 3, step: 1, value: 0, on_change: cmd("fan") });
+    const slider = screen.getByRole("slider", { name: "Fan" });
+    track(slider, {});
+    const fill = slider.querySelector<HTMLElement>("[data-fill]")!;
+    fireEvent.pointerDown(slider, { clientX: 90, clientY: 10, pointerId: 1 });
+    expect(fill.style.transform).toBe("translateX(-55%)");
+    expect(fill).toHaveAttribute("data-dragging", "true");
+    expect(slider).toHaveAttribute("aria-valuenow", "1");
+    fireEvent.pointerMove(slider, { clientX: 110, clientY: 10, pointerId: 1 });
+    expect(fill.style.transform).toBe("translateX(-45%)");
+    expect(slider).toHaveAttribute("aria-valuenow", "2");
+    fireEvent.pointerUp(slider, { clientX: 110, clientY: 10, pointerId: 1 });
+    expect(fill).toHaveAttribute("data-dragging", "false");
+    expect(fill.style.transform).toBe("translateX(-33.333%)");
   });
 
   test("horizontal fills from the left", () => {

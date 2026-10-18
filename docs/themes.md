@@ -22,6 +22,36 @@ page survives a reload.
 A page that isn't showing keeps its data live (pushes still arrive) but stops its modules from
 polling. Showing it again fetches anything that went stale while it was away.
 
+## Flow and tiles
+
+`<Flow>` is the easy default for a page of panels. It works like a phone's home screen of widgets:
+equal columns on a grid of rows. Each panel is as tall as its content, rounded up to whole rows, so
+two short panels stack to exactly the height of a tall one beside them, and gaps get packed.
+
+```tsx
+<Flow>
+  <Slot module="weather" instance="home" />
+  <Tile size="large"><Slot module="calendar" feeds="home" /></Tile>
+  <Tile rows={2}><Slot module="system" /></Tile>
+  <Slot module="openrouter" />
+</Flow>
+```
+
+<img src="images/layout.png" alt="A Flow of tiles: large 2x2, small, content-sized, medium 2x1 and a custom 1x1">
+
+Wrap a panel in `<Tile>` to choose its size instead (sizes follow iOS widgets):
+
+| `<Tile>` | Columns × rows |
+|---|---|
+| `size="small"` | 1 × 1 |
+| `size="medium"` | 2 × 1 (wide) |
+| `size="large"` | 2 × 2 |
+| `cols={n} rows={n}` | any |
+
+`<Flow>` takes `width` (the narrowest a column gets, in rem; default 22), `unit` (one row's height,
+in rem; default 10) and `gap` (default 6, in quarter-rem steps like the other containers). For exact
+placement, use rows, columns or a grid instead.
+
 ## Rows, columns and grids
 
 `<Row>` and `<Column>` split the space evenly; give a child `size` to change its share (`2` for

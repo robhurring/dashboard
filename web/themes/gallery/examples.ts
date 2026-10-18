@@ -12,13 +12,12 @@ export const PAGES = [
   { id: "meters", title: "Meters" },
   { id: "trends", title: "Trends" },
   { id: "charts", title: "Charts" },
-  { id: "text", title: "Text, lists and icons" },
-  { id: "markdown", title: "Markdown" },
+  { id: "text", title: "Text and markdown" },
+  { id: "titles", title: "Titles, lists and icons" },
   { id: "toggles", title: "Toggles" },
   { id: "sliders", title: "Sliders and choices" },
   { id: "buttons", title: "Buttons and media" },
-  { id: "titles", title: "Titles" },
-  { id: "time", title: "Time and layout" },
+  { id: "time", title: "Time and groups" },
 ] as const;
 export type PageId = (typeof PAGES)[number]["id"];
 
@@ -30,9 +29,9 @@ export type Example = {
   node: WidgetNode;
   /** Hand-written Lua, when the example is about where the data comes from; otherwise generated. */
   lua?: string;
-  /** Size of its gallery panel, in px. */
-  width?: number;
-  height?: number;
+  /** Its tile in the gallery's Flow, for widgets that fill the space they're given (gauges, charts). Others size to their content. */
+  size?: "small" | "medium" | "large";
+  rows?: number;
 };
 
 export const exampleId = (ex: Example) => (ex.variant ? `${ex.name}-${ex.variant.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}` : ex.name);
@@ -108,76 +107,67 @@ export const EXAMPLES: Example[] = [
   // Figures
   { name: "stat", page: "figures", node: w("stat", { value: "63°", label: "Portland", sub: "feels like 62°", icon: "cloud-sun" }) },
   { name: "stat", variant: "Without an icon", page: "figures", node: w("stat", { value: "1,284", label: "Steps today", sub: "goal 8,000" }) },
-  { name: "gauge", page: "figures", node: w("gauge", { value: 82, unit: "%", label: "Memory", sub: "13.1 / 16 GB", icon: "memory-stick", stops: { "75": "yellow", "90": "red" }, big: true }), height: 280 },
-  { name: "gauge", variant: "Low and green", page: "figures", node: w("gauge", { value: 23, unit: "%", label: "CPU", sub: "of all cores", icon: "cpu", stops: { "70": "yellow", "90": "red" }, big: true }), height: 280 },
-  { name: "gauge", variant: "Past the red stop", page: "meters", node: w("gauge", { value: 96, unit: "%", label: "Disk", sub: "1.9 / 2 TB", icon: "hard-drive", stops: { "75": "yellow", "90": "red" }, big: true }), height: 300 },
-  { name: "gauge", variant: "A fixed tone", page: "meters", node: w("gauge", { value: 41, unit: "%", label: "Redis", icon: "redis", tone: "purple", big: true }), height: 300 },
-  { name: "gauge", variant: "Compact, in a row", page: "figures", node: w("group", { direction: "row", gap: 4 }, [w("gauge", { value: 64, unit: "%", label: "Humidity" }), w("gauge", { value: 12, max: 20, unit: " mph", label: "Wind" })]), width: 360, height: 220 },
+  { name: "gauge", page: "figures", node: w("gauge", { value: 82, unit: "%", label: "Memory", sub: "13.1 / 16 GB", icon: "memory-stick", stops: { "75": "yellow", "90": "red" }, big: true }), rows: 2 },
+  { name: "gauge", variant: "Low and green", page: "figures", node: w("gauge", { value: 23, unit: "%", label: "CPU", sub: "of all cores", icon: "cpu", stops: { "70": "yellow", "90": "red" }, big: true }), rows: 2 },
+  { name: "gauge", variant: "Past the red stop", page: "meters", node: w("gauge", { value: 96, unit: "%", label: "Disk", sub: "1.9 / 2 TB", icon: "hard-drive", stops: { "75": "yellow", "90": "red" }, big: true }), rows: 2 },
+  { name: "gauge", variant: "A fixed tone", page: "meters", node: w("gauge", { value: 41, unit: "%", label: "Redis", icon: "redis", tone: "purple", big: true }), rows: 2 },
+  { name: "gauge", variant: "Compact, in a row", page: "figures", node: w("group", { direction: "row", gap: 4 }, [w("gauge", { value: 64, unit: "%", label: "Humidity" }), w("gauge", { value: 12, max: 20, unit: " mph", label: "Wind" })]) },
 
   // Trends
-  { name: "progress", page: "meters", node: w("progress", { value: 9.96, max: 10, label: "Balance", text: "$9.96 left of $10.00", stops: DEPLETION }), height: 130 },
-  { name: "progress", variant: "Running low", page: "meters", node: w("progress", { value: 1.8, max: 10, label: "Balance", text: "$1.80 left of $10.00", stops: DEPLETION }), height: 130 },
-  { name: "progress", variant: "Nearly out", page: "meters", node: w("progress", { value: 0.6, max: 10, label: "Balance", text: "$0.60 left of $10.00", stops: DEPLETION }), height: 130 },
-  { name: "progress", variant: "Plain, in the accent", page: "meters", node: w("progress", { value: 40, label: "Backup", text: "40%" }), height: 130 },
+  { name: "progress", page: "meters", node: w("progress", { value: 9.96, max: 10, label: "Balance", text: "$9.96 left of $10.00", stops: DEPLETION }) },
+  { name: "progress", variant: "Running low", page: "meters", node: w("progress", { value: 1.8, max: 10, label: "Balance", text: "$1.80 left of $10.00", stops: DEPLETION }) },
+  { name: "progress", variant: "Nearly out", page: "meters", node: w("progress", { value: 0.6, max: 10, label: "Balance", text: "$0.60 left of $10.00", stops: DEPLETION }) },
+  { name: "progress", variant: "Plain, in the accent", page: "meters", node: w("progress", { value: 40, label: "Backup", text: "40%" }) },
   { name: "ticker", page: "trends", node: w("ticker", { items: [{ label: "AAPL", value: "231.40", delta: 2.18, change: "+$2.18" }, { label: "MSFT", value: "428.92", delta: -1.07, change: "-$1.07" }, { label: "SPY", value: "584.12", delta: 0.59 }] }) },
   { name: "ticker", variant: "Percent changes", page: "trends", node: w("ticker", { items: [{ label: "BTC", value: "67,410", delta: 3.2 }, { label: "ETH", value: "3,120", delta: -0.8 }, { label: "Gold", value: "2,340", delta: 0.1 }] }) },
   { name: "line", page: "trends", node: w("line", { points: cpu, label: "CPU", unit: "%", min: 0, max: 100 }) },
   { name: "line", variant: "A tone and its own range", page: "trends", node: w("line", { points: temps, label: "Outside", unit: "°", tone: "good", height: 5 }) },
-  { name: "bar", page: "charts", node: w("bar", { label: "Steps", unit: "k", items: [{ label: "M", value: 8.2 }, { label: "T", value: 11.4 }, { label: "W", value: 6.1 }, { label: "T", value: 9.8 }, { label: "F", value: 12.3 }] }) },
-  { name: "donut", page: "charts", node: w("donut", { center: 48, label: "Disk (GB)", items: [{ label: "Media", value: 28 }, { label: "Backups", value: 12 }, { label: "Other", value: 8 }] }) },
-  { name: "donut", variant: "A budget", page: "charts", node: w("donut", { center: "$620", label: "October", items: [{ label: "Groceries", value: 310 }, { label: "Dining", value: 140 }, { label: "Fuel", value: 90 }, { label: "Other", value: 80 }] }) },
+  { name: "bar", page: "charts", node: w("bar", { label: "Steps", unit: "k", items: [{ label: "M", value: 8.2 }, { label: "T", value: 11.4 }, { label: "W", value: 6.1 }, { label: "T", value: 9.8 }, { label: "F", value: 12.3 }] }), rows: 2 },
+  { name: "donut", page: "charts", node: w("donut", { center: 48, label: "Disk (GB)", items: [{ label: "Media", value: 28 }, { label: "Backups", value: 12 }, { label: "Other", value: 8 }] }), rows: 2 },
+  { name: "donut", variant: "A budget", page: "charts", node: w("donut", { center: "$620", label: "October", items: [{ label: "Groceries", value: 310 }, { label: "Dining", value: 140 }, { label: "Fuel", value: 90 }, { label: "Other", value: 80 }] }), rows: 2 },
 
   // Text
   { name: "text", page: "text", node: w("text", { text: "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." }) },
   { name: "text", variant: "A digest", page: "text", node: w("text", { text: "### Today\n- **Standup** moved to 10:00\n- Dentist at 4\n- Package arriving" }) },
-  { name: "markdown", page: "markdown", node: w("markdown", { text: releaseNotes }), lua: `ui.markdown { text = [[\n${releaseNotes}\n]] }`, width: 520, height: 430 },
-  { name: "markdown", variant: "Links as plain text", page: "markdown", node: w("markdown", { text: kitchenNotes, links: false }), lua: `ui.markdown { links = false, text = [[\n${kitchenNotes}\n]] }`, width: 360, height: 300 },
+  { name: "markdown", page: "text", node: w("markdown", { text: releaseNotes }), lua: `ui.markdown { text = [[\n${releaseNotes}\n]] }` },
+  { name: "markdown", variant: "Links as plain text", page: "text", node: w("markdown", { text: kitchenNotes, links: false }), lua: `ui.markdown { links = false, text = [[\n${kitchenNotes}\n]] }` },
 
   // Lists and badges
-  { name: "list", page: "text", node: w("list", { empty: "Nothing waiting" }, [
-    w("row", { title: "#incident-412", meta: "3 new", badge: 3, on_tap: act("open", { channel: "incident-412" }) }),
-    w("row", { title: "#deploys", meta: "build 1.8.2 is out", badge: 1 }),
-    w("row", { title: "#random", meta: "quiet" }),
-  ]) },
-  { name: "list", variant: "Empty", page: "text", node: w("list", { empty: "Inbox zero" }), height: 140 },
-  { name: "badge", page: "text", node: w("group", { direction: "row", gap: 2 }, [w("badge", { text: "live", tone: "good" }), w("badge", { text: 3, tone: "warn" }), w("badge", { text: "down", tone: "bad" }), w("badge", { text: "idle", tone: "muted" })]), height: 120 },
-  { name: "icon", page: "text", node: w("group", { direction: "row", gap: 4 }, [w("icon", { name: "sun", size: 28 }), w("icon", { name: "cloud-rain", size: 28 }), w("icon", { name: "bell", size: 28 }), w("icon", { name: "server", size: 28 })]), height: 120 },
-  { name: "icon", variant: "Any Lucide icon", page: "text", node: w("group", { direction: "row", gap: 4 }, [w("icon", { name: "lightbulb", size: 28 }), w("icon", { name: "thermometer", size: 28 }), w("icon", { name: "door-open", size: 28 }), w("icon", { name: "droplets", size: 28 }), w("icon", { name: "lock", size: 28 }), w("icon", { name: "fan", size: 28 })]), height: 120 },
 
   // Toggles
   { name: "toggle", page: "toggles", node: w("group", { direction: "column", gap: 4 }, [
     w("toggle", { label: "Kitchen lights", icon: "lightbulb", icon_off: "lightbulb-off", on: true, on_change: act("light", { id: "kitchen" }) }),
     w("toggle", { label: "Hallway", sub: "motion sensor", icon: "lightbulb", icon_off: "lightbulb-off", on: false, on_change: act("light", { id: "hall" }) }),
     w("toggle", { label: "Do not disturb", icon: "moon", on: true, tone: "purple", on_change: act("dnd") }),
-  ]), width: 400, height: 260 },
-  { name: "toggle", variant: "Slide", page: "toggles", node: w("toggle", { label: "Slide to unlock", style: "slide", icon: "lock-open", on: false, on_change: act("door") }), width: 400, height: 140 },
+  ]) },
+  { name: "toggle", variant: "Slide", page: "toggles", node: w("toggle", { label: "Slide to unlock", style: "slide", icon: "lock-open", on: false, on_change: act("door") }) },
   { name: "toggle", variant: "Upright slides", page: "toggles", node: w("group", { direction: "row", gap: 6 }, [
     w("toggle", { label: "Porch", style: "slide", orientation: "vertical", icon: "lamp", on: false, on_change: act("porch") }),
     w("toggle", { label: "Garage", style: "slide", orientation: "vertical", icon: "warehouse", on: true, on_change: act("garage") }),
-  ]), width: 300, height: 300 },
+  ]) },
   { name: "toggle", variant: "Tiles", page: "toggles", node: w("group", { direction: "row", gap: 4 }, [
     w("toggle", { label: "Fan", style: "tile", icon: "fan", sub: "Bedroom", on: true, on_change: act("fan") }),
     w("toggle", { label: "Front door", style: "tile", icon: "lock", sub: "Locked", on: false, on_change: act("lock") }),
     w("toggle", { label: "Sprinklers", style: "tile", icon: "droplets", sub: "Zone 2", on: true, tone: "accent", on_change: act("zone", { id: 2 }) }),
-  ]), width: 520, height: 230 },
+  ]) },
 
   // Sliders and choices
   { name: "slider", page: "sliders", node: w("group", { direction: "row", gap: 6 }, [
     w("slider", { label: "Brightness", icon: "sun", value: 60, unit: "%", orientation: "vertical", on_change: act("dim", { id: "kitchen" }) }),
     w("slider", { label: "Volume", icon: "volume-2", value: 35, orientation: "vertical", on_change: act("volume") }),
-  ]), height: 300 },
-  { name: "slider", variant: "Horizontal", page: "sliders", node: w("slider", { label: "Thermostat", icon: "thermometer", min: 60, max: 80, value: 68, unit: "°", on_change: act("thermostat") }), width: 400, height: 150 },
-  { name: "slider", variant: "Stepped", page: "sliders", node: w("slider", { label: "Fan speed", icon: "fan", min: 0, max: 5, step: 1, value: 2, on_change: act("fan_speed") }), width: 400, height: 150 },
-  { name: "choice", page: "sliders", node: w("choice", { label: "Scene", value: "Day", options: ["Day", { value: "movie", label: "Movie night" }, "Off"], on_change: act("scene") }), width: 400, height: 160 },
-  { name: "choice", variant: "Modes", page: "sliders", node: w("choice", { label: "Heat pump", value: "auto", options: [{ value: "heat", label: "Heat" }, { value: "cool", label: "Cool" }, { value: "auto", label: "Auto" }, { value: "off", label: "Off" }], on_change: act("hvac_mode") }), width: 400, height: 160 },
+  ]) },
+  { name: "slider", variant: "Horizontal", page: "sliders", node: w("slider", { label: "Thermostat", icon: "thermometer", min: 60, max: 80, value: 68, unit: "°", on_change: act("thermostat") }) },
+  { name: "slider", variant: "Stepped", page: "sliders", node: w("slider", { label: "Fan speed", icon: "fan", min: 0, max: 5, step: 1, value: 2, on_change: act("fan_speed") }) },
+  { name: "choice", page: "sliders", node: w("choice", { label: "Scene", value: "Day", options: ["Day", { value: "movie", label: "Movie night" }, "Off"], on_change: act("scene") }) },
+  { name: "choice", variant: "Modes", page: "sliders", node: w("choice", { label: "Heat pump", value: "auto", options: [{ value: "heat", label: "Heat" }, { value: "cool", label: "Cool" }, { value: "auto", label: "Auto" }, { value: "off", label: "Off" }], on_change: act("hvac_mode") }) },
 
   // Buttons
-  { name: "button", page: "buttons", node: w("button", { label: "Movie night", icon: "clapperboard", on_tap: act("scene", { name: "movie" }) }), height: 140 },
+  { name: "button", page: "buttons", node: w("button", { label: "Movie night", icon: "clapperboard", on_tap: act("scene", { name: "movie" }) }) },
   { name: "button", variant: "A row of actions", page: "buttons", node: w("group", { direction: "row", gap: 3 }, [
     w("button", { label: "Refresh", icon: "refresh-cw", on_tap: act("refresh") }),
     w("button", { label: "Snooze", icon: "alarm-clock-off", on_tap: act("snooze", { minutes: 10 }) }),
     w("button", { label: "All off", icon: "power", on_tap: act("all_off") }),
-  ]), width: 520, height: 140 },
+  ]) },
 
   // Media
   { name: "image", page: "buttons", node: w("image", { data: SAMPLE_PNG, type: "image/png", alt: "The garden at dawn", fit: "cover" }), height: 260,
@@ -186,19 +176,27 @@ export const EXAMPLES: Example[] = [
     lua: `local clip = openrouter.speak(ctx, "Your 3pm is in ten minutes")  -- in fetch\n\nui.audio { data = state.clip.data, type = state.clip.type, label = "Next meeting", autoplay = true }` },
 
   // Titles
-  { name: "title", page: "titles", node: w("title", { text: "Charts", sub: "2 of 10" }), width: 400, height: 140 },
-  { name: "title", variant: "Centered, with an icon", page: "titles", node: w("title", { text: "Garden", sub: "3 zones · next run 6:00", icon: "sprout", align: "center" }), width: 400, height: 140 },
-  { name: "title", variant: "Details beside", page: "titles", node: w("title", { text: "Status", sub: "all systems normal", details: "beside", size: "medium" }), width: 400, height: 120 },
-  { name: "title", variant: "Right-aligned, details beside", page: "titles", node: w("title", { text: "Today", sub: "Saturday", align: "right", details: "beside", size: "medium" }), width: 400, height: 120 },
+  { name: "title", page: "titles", node: w("title", { text: "Charts", sub: "2 of 10" }) },
+  { name: "title", variant: "Centered, with an icon", page: "titles", node: w("title", { text: "Garden", sub: "3 zones · next run 6:00", icon: "sprout", align: "center" }) },
+  { name: "title", variant: "Details beside", page: "titles", node: w("title", { text: "Status", sub: "all systems normal", details: "beside", size: "medium" }) },
+  { name: "title", variant: "Right-aligned, details beside", page: "titles", node: w("title", { text: "Today", sub: "Saturday", align: "right", details: "beside", size: "medium" }) },
+  { name: "list", page: "titles", node: w("list", { empty: "Nothing waiting" }, [
+    w("row", { title: "#incident-412", meta: "3 new", badge: 3, on_tap: act("open", { channel: "incident-412" }) }),
+    w("row", { title: "#deploys", meta: "build 1.8.2 is out", badge: 1 }),
+    w("row", { title: "#random", meta: "quiet" }),
+  ]) },
+  { name: "list", variant: "Empty", page: "titles", node: w("list", { empty: "Inbox zero" }) },
+  { name: "badge", page: "titles", node: w("group", { direction: "row", gap: 2 }, [w("badge", { text: "live", tone: "good" }), w("badge", { text: 3, tone: "warn" }), w("badge", { text: "down", tone: "bad" }), w("badge", { text: "idle", tone: "muted" })]) },
+  { name: "icon", page: "titles", node: w("group", { direction: "row", gap: 4 }, [w("icon", { name: "sun", size: 28 }), w("icon", { name: "cloud-rain", size: 28 }), w("icon", { name: "bell", size: 28 }), w("icon", { name: "lightbulb", size: 28 }), w("icon", { name: "thermometer", size: 28 }), w("icon", { name: "door-open", size: 28 }), w("icon", { name: "lock", size: 28 }), w("icon", { name: "fan", size: 28 })]) },
 
   // Time and layout
-  { name: "clock", page: "time", node: w("clock", { tz: "Europe/London", label: "London", date: "ddd, MMM D" }), height: 260 },
-  { name: "clock", variant: "Analog", page: "time", node: w("clock", { tz: "Asia/Tokyo", label: "Tokyo", style: "analog" }), height: 300 },
-  { name: "clock", variant: "Seconds and 12-hour time", page: "time", node: w("clock", { tz: "America/Los_Angeles", label: "Los Angeles", seconds: true, format: "h:mm:ss a" }), height: 200 },
+  { name: "clock", page: "time", node: w("clock", { tz: "Europe/London", label: "London", date: "ddd, MMM D" }) },
+  { name: "clock", variant: "Analog", page: "time", node: w("clock", { tz: "Asia/Tokyo", label: "Tokyo", style: "analog" }), rows: 2 },
+  { name: "clock", variant: "Seconds and 12-hour time", page: "time", node: w("clock", { tz: "America/Los_Angeles", label: "Los Angeles", seconds: true, format: "h:mm:ss a" }) },
   { name: "group", page: "time", node: w("group", { direction: "column", gap: 3 }, [
     w("group", { direction: "row", gap: 6 }, [w("stat", { value: "1.12", label: "Load", icon: "activity" }), w("stat", { value: "23d", label: "Uptime", icon: "timer" })]),
     w("line", { points: cpu, unit: "%", min: 0, max: 100 }),
-  ]), width: 520 },
+  ]) },
 ];
 
 // What each widget is and its options, shown with its first example.
@@ -535,7 +533,7 @@ export const META: Record<string, { summary: string; options: [string, string][]
     "options": [
       [
         "name",
-        "a Lucide icon name from web/src/widgets/icons.tsx"
+        "any Lucide icon name (lucide.dev/icons), such as \"cloud-rain\" or \"door-open\""
       ],
       [
         "size",

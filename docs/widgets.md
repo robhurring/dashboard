@@ -8,13 +8,13 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?demo&theme=gallery` to see every widget live, a page per group.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [progress](#uiprogress) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [text](#uitext) · [markdown](#uimarkdown) · [list](#uilist) · [badge](#uibadge) · [icon](#uiicon) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [button](#uibutton) · [image](#uiimage) · [audio](#uiaudio) · [title](#uititle) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [progress](#uiprogress) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [text](#uitext) · [markdown](#uimarkdown) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [button](#uibutton) · [image](#uiimage) · [audio](#uiaudio) · [title](#uititle) · [list](#uilist) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
 
 ## ui.stat
 
 One figure with a label, a smaller line under it and an optional icon.
 
-<img src="images/widgets/stat.png" alt="ui.stat" width="270">
+<img src="images/widgets/stat.png" alt="ui.stat" width="300">
 
 ```lua
 ui.stat { value = "63°", label = "Portland", sub = "feels like 62°", icon = "cloud-sun" }
@@ -29,7 +29,7 @@ ui.stat { value = "63°", label = "Portland", sub = "feels like 62°", icon = "c
 
 ### Without an icon
 
-<img src="images/widgets/stat-without-an-icon.png" alt="ui.stat: Without an icon" width="270">
+<img src="images/widgets/stat-without-an-icon.png" alt="ui.stat: Without an icon" width="300">
 
 ```lua
 ui.stat { value = "1,284", label = "Steps today", sub = "goal 8,000" }
@@ -39,7 +39,7 @@ ui.stat { value = "1,284", label = "Steps today", sub = "goal 8,000" }
 
 A half-circle meter. Its color changes as the value passes each stop.
 
-<img src="images/widgets/gauge.png" alt="ui.gauge" width="270">
+<img src="images/widgets/gauge.png" alt="ui.gauge" width="300">
 
 ```lua
 ui.gauge {
@@ -63,7 +63,7 @@ ui.gauge {
 
 ### Low and green
 
-<img src="images/widgets/gauge-low-and-green.png" alt="ui.gauge: Low and green" width="270">
+<img src="images/widgets/gauge-low-and-green.png" alt="ui.gauge: Low and green" width="300">
 
 ```lua
 ui.gauge {
@@ -79,7 +79,7 @@ ui.gauge {
 
 ### Past the red stop
 
-<img src="images/widgets/gauge-past-the-red-stop.png" alt="ui.gauge: Past the red stop" width="270">
+<img src="images/widgets/gauge-past-the-red-stop.png" alt="ui.gauge: Past the red stop" width="300">
 
 ```lua
 ui.gauge {
@@ -95,7 +95,7 @@ ui.gauge {
 
 ### A fixed tone
 
-<img src="images/widgets/gauge-a-fixed-tone.png" alt="ui.gauge: A fixed tone" width="270">
+<img src="images/widgets/gauge-a-fixed-tone.png" alt="ui.gauge: A fixed tone" width="300">
 
 ```lua
 ui.gauge {
@@ -110,7 +110,7 @@ ui.gauge {
 
 ### Compact, in a row
 
-<img src="images/widgets/gauge-compact-in-a-row.png" alt="ui.gauge: Compact, in a row" width="270">
+<img src="images/widgets/gauge-compact-in-a-row.png" alt="ui.gauge: Compact, in a row" width="300">
 
 ```lua
 ui.group {
@@ -125,7 +125,7 @@ ui.group {
 
 A horizontal bar of value out of max. Stops color it by how full it is, so a balance can turn yellow, then red, as it runs down.
 
-<img src="images/widgets/progress.png" alt="ui.progress" width="270">
+<img src="images/widgets/progress.png" alt="ui.progress" width="300">
 
 ```lua
 ui.progress {
@@ -146,7 +146,7 @@ ui.progress {
 
 ### Running low
 
-<img src="images/widgets/progress-running-low.png" alt="ui.progress: Running low" width="270">
+<img src="images/widgets/progress-running-low.png" alt="ui.progress: Running low" width="300">
 
 ```lua
 ui.progress {
@@ -160,7 +160,7 @@ ui.progress {
 
 ### Nearly out
 
-<img src="images/widgets/progress-nearly-out.png" alt="ui.progress: Nearly out" width="270">
+<img src="images/widgets/progress-nearly-out.png" alt="ui.progress: Nearly out" width="300">
 
 ```lua
 ui.progress {
@@ -174,7 +174,7 @@ ui.progress {
 
 ### Plain, in the accent
 
-<img src="images/widgets/progress-plain-in-the-accent.png" alt="ui.progress: Plain, in the accent" width="270">
+<img src="images/widgets/progress-plain-in-the-accent.png" alt="ui.progress: Plain, in the accent" width="300">
 
 ```lua
 ui.progress { value = 40, label = "Backup", text = "40%" }
@@ -184,7 +184,7 @@ ui.progress { value = 40, label = "Backup", text = "40%" }
 
 Rows of label, value and change, colored up or down.
 
-<img src="images/widgets/ticker.png" alt="ui.ticker" width="270">
+<img src="images/widgets/ticker.png" alt="ui.ticker" width="300">
 
 ```lua
 ui.ticker {
@@ -198,7 +198,7 @@ ui.ticker {
 
 ### Percent changes
 
-<img src="images/widgets/ticker-percent-changes.png" alt="ui.ticker: Percent changes" width="270">
+<img src="images/widgets/ticker-percent-changes.png" alt="ui.ticker: Percent changes" width="300">
 
 ```lua
 ui.ticker {
@@ -210,7 +210,7 @@ ui.ticker {
 
 A sparkline over a list of numbers, oldest first, with the latest value as text.
 
-<img src="images/widgets/line.png" alt="ui.line" width="270">
+<img src="images/widgets/line.png" alt="ui.line" width="300">
 
 ```lua
 ui.line {
@@ -232,7 +232,7 @@ ui.line {
 
 ### A tone and its own range
 
-<img src="images/widgets/line-a-tone-and-its-own-range.png" alt="ui.line: A tone and its own range" width="270">
+<img src="images/widgets/line-a-tone-and-its-own-range.png" alt="ui.line: A tone and its own range" width="300">
 
 ```lua
 ui.line {
@@ -248,7 +248,7 @@ ui.line {
 
 Vertical bars with labels and values underneath.
 
-<img src="images/widgets/bar.png" alt="ui.bar" width="270">
+<img src="images/widgets/bar.png" alt="ui.bar" width="300">
 
 ```lua
 ui.bar {
@@ -267,7 +267,7 @@ ui.bar {
 
 Parts of a whole, with a legend and a figure in the middle.
 
-<img src="images/widgets/donut.png" alt="ui.donut" width="270">
+<img src="images/widgets/donut.png" alt="ui.donut" width="300">
 
 ```lua
 ui.donut {
@@ -285,7 +285,7 @@ ui.donut {
 
 ### A budget
 
-<img src="images/widgets/donut-a-budget.png" alt="ui.donut: A budget" width="270">
+<img src="images/widgets/donut-a-budget.png" alt="ui.donut: A budget" width="300">
 
 ```lua
 ui.donut {
@@ -299,7 +299,7 @@ ui.donut {
 
 Short markdown for digests: bold, italics, inline code, lists and small headings. For anything richer, use ui.markdown.
 
-<img src="images/widgets/text.png" alt="ui.text" width="270">
+<img src="images/widgets/text.png" alt="ui.text" width="300">
 
 ```lua
 ui.text { text = "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." }
@@ -311,7 +311,7 @@ ui.text { text = "**Bins** go out *tonight*.\n\nRecycling is `blue` this week." 
 
 ### A digest
 
-<img src="images/widgets/text-a-digest.png" alt="ui.text: A digest" width="270">
+<img src="images/widgets/text-a-digest.png" alt="ui.text: A digest" width="300">
 
 ```lua
 ui.text { text = "### Today\n- **Standup** moved to 10:00\n- Dentist at 4\n- Package arriving" }
@@ -321,7 +321,7 @@ ui.text { text = "### Today\n- **Standup** moved to 10:00\n- Dentist at 4\n- Pac
 
 Full markdown for a rich tile: headings, links, task lists, tables, code blocks, quotes and images. Raw HTML is never rendered.
 
-<img src="images/widgets/markdown.png" alt="ui.markdown" width="390">
+<img src="images/widgets/markdown.png" alt="ui.markdown" width="300">
 
 ```lua
 ui.markdown { text = [[
@@ -350,7 +350,7 @@ bin/deploy prod
 
 ### Links as plain text
 
-<img src="images/widgets/markdown-links-as-plain-text.png" alt="ui.markdown: Links as plain text" width="270">
+<img src="images/widgets/markdown-links-as-plain-text.png" alt="ui.markdown: Links as plain text" width="300">
 
 ```lua
 ui.markdown { links = false, text = [[
@@ -363,102 +363,6 @@ ui.markdown { links = false, text = [[
 
 Recipe: [shakshuka](https://example.com/shakshuka)
 ]] }
-```
-
-## ui.list
-
-Tappable rows. A row's `on_tap` runs one of the module's commands.
-
-<img src="images/widgets/list.png" alt="ui.list" width="270">
-
-```lua
-ui.list {
-  empty = "Nothing waiting",
-  ui.row {
-    title = "#incident-412",
-    meta = "3 new",
-    badge = 3,
-    on_tap = cmd("open", { channel = "incident-412" }),
-  },
-  ui.row { title = "#deploys", meta = "build 1.8.2 is out", badge = 1 },
-  ui.row { title = "#random", meta = "quiet" },
-}
-```
-
-| Option | |
-|---|---|
-| `(children)` | `ui.row`s, as array entries or `children` |
-| `empty` | shown when there are no rows |
-| `row: title`, `meta`, `badge` | the row's text and a count |
-| `row: on_tap` | `cmd("name", args)`: runs that command when tapped |
-
-### Empty
-
-<img src="images/widgets/list-empty.png" alt="ui.list: Empty" width="270">
-
-```lua
-ui.list { empty = "Inbox zero" }
-```
-
-## ui.badge
-
-A small count or label in a tone.
-
-<img src="images/widgets/badge.png" alt="ui.badge" width="270">
-
-```lua
-ui.group {
-  direction = "row",
-  gap = 2,
-  ui.badge { text = "live", tone = "good" },
-  ui.badge { text = 3, tone = "warn" },
-  ui.badge { text = "down", tone = "bad" },
-  ui.badge { text = "idle", tone = "muted" },
-}
-```
-
-| Option | |
-|---|---|
-| `text` | a string or number |
-| `tone` | `good`, `warn`, `bad` or `muted` |
-
-## ui.icon
-
-A Lucide icon by name, sized in pixels and colored like the text around it.
-
-<img src="images/widgets/icon.png" alt="ui.icon" width="270">
-
-```lua
-ui.group {
-  direction = "row",
-  gap = 4,
-  ui.icon { name = "sun", size = 28 },
-  ui.icon { name = "cloud-rain", size = 28 },
-  ui.icon { name = "bell", size = 28 },
-  ui.icon { name = "server", size = 28 },
-}
-```
-
-| Option | |
-|---|---|
-| `name` | a Lucide icon name from web/src/widgets/icons.tsx |
-| `size` | in px (default 20) |
-
-### Any Lucide icon
-
-<img src="images/widgets/icon-any-lucide-icon.png" alt="ui.icon: Any Lucide icon" width="270">
-
-```lua
-ui.group {
-  direction = "row",
-  gap = 4,
-  ui.icon { name = "lightbulb", size = 28 },
-  ui.icon { name = "thermometer", size = 28 },
-  ui.icon { name = "door-open", size = 28 },
-  ui.icon { name = "droplets", size = 28 },
-  ui.icon { name = "lock", size = 28 },
-  ui.icon { name = "fan", size = 28 },
-}
 ```
 
 ## ui.toggle
@@ -522,7 +426,7 @@ ui.toggle {
 
 ### Upright slides
 
-<img src="images/widgets/toggle-upright-slides.png" alt="ui.toggle: Upright slides" width="225">
+<img src="images/widgets/toggle-upright-slides.png" alt="ui.toggle: Upright slides" width="300">
 
 ```lua
 ui.group {
@@ -549,7 +453,7 @@ ui.group {
 
 ### Tiles
 
-<img src="images/widgets/toggle-tiles.png" alt="ui.toggle: Tiles" width="390">
+<img src="images/widgets/toggle-tiles.png" alt="ui.toggle: Tiles" width="300">
 
 ```lua
 ui.group {
@@ -587,7 +491,7 @@ ui.group {
 
 A Control Center slider: a fat track that fills as you drag, horizontal or upright. Sends the value once, when let go.
 
-<img src="images/widgets/slider.png" alt="ui.slider" width="270">
+<img src="images/widgets/slider.png" alt="ui.slider" width="300">
 
 ```lua
 ui.group {
@@ -689,7 +593,7 @@ ui.choice {
 
 Runs one of the module's commands when tapped: refresh, run a scene, snooze. Shows the command's error if it fails.
 
-<img src="images/widgets/button.png" alt="ui.button" width="270">
+<img src="images/widgets/button.png" alt="ui.button" width="300">
 
 ```lua
 ui.button {
@@ -706,7 +610,7 @@ ui.button {
 
 ### A row of actions
 
-<img src="images/widgets/button-a-row-of-actions.png" alt="ui.button: A row of actions" width="390">
+<img src="images/widgets/button-a-row-of-actions.png" alt="ui.button: A row of actions" width="300">
 
 ```lua
 ui.group {
@@ -726,7 +630,7 @@ ui.group {
 
 An image, inline as base64 (`data`) or from a URL (`src`). Pairs with openrouter.image() for generated pictures.
 
-<img src="images/widgets/image.png" alt="ui.image" width="270">
+<img src="images/widgets/image.png" alt="ui.image" width="300">
 
 ```lua
 local picture = openrouter.image(ctx, "A watercolor of the garden at dawn")  -- in fetch
@@ -746,7 +650,7 @@ ui.image { data = state.picture.data, type = state.picture.type, alt = "The gard
 
 A clip with a play button, inline as base64 or from a URL. With autoplay, each new clip plays as it arrives: an announcement.
 
-<img src="images/widgets/audio.png" alt="ui.audio" width="270">
+<img src="images/widgets/audio.png" alt="ui.audio" width="300">
 
 ```lua
 local clip = openrouter.speak(ctx, "Your 3pm is in ten minutes")  -- in fetch
@@ -809,11 +713,94 @@ ui.title {
 }
 ```
 
+## ui.list
+
+Tappable rows. A row's `on_tap` runs one of the module's commands.
+
+<img src="images/widgets/list.png" alt="ui.list" width="300">
+
+```lua
+ui.list {
+  empty = "Nothing waiting",
+  ui.row {
+    title = "#incident-412",
+    meta = "3 new",
+    badge = 3,
+    on_tap = cmd("open", { channel = "incident-412" }),
+  },
+  ui.row { title = "#deploys", meta = "build 1.8.2 is out", badge = 1 },
+  ui.row { title = "#random", meta = "quiet" },
+}
+```
+
+| Option | |
+|---|---|
+| `(children)` | `ui.row`s, as array entries or `children` |
+| `empty` | shown when there are no rows |
+| `row: title`, `meta`, `badge` | the row's text and a count |
+| `row: on_tap` | `cmd("name", args)`: runs that command when tapped |
+
+### Empty
+
+<img src="images/widgets/list-empty.png" alt="ui.list: Empty" width="300">
+
+```lua
+ui.list { empty = "Inbox zero" }
+```
+
+## ui.badge
+
+A small count or label in a tone.
+
+<img src="images/widgets/badge.png" alt="ui.badge" width="300">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 2,
+  ui.badge { text = "live", tone = "good" },
+  ui.badge { text = 3, tone = "warn" },
+  ui.badge { text = "down", tone = "bad" },
+  ui.badge { text = "idle", tone = "muted" },
+}
+```
+
+| Option | |
+|---|---|
+| `text` | a string or number |
+| `tone` | `good`, `warn`, `bad` or `muted` |
+
+## ui.icon
+
+A Lucide icon by name, sized in pixels and colored like the text around it.
+
+<img src="images/widgets/icon.png" alt="ui.icon" width="300">
+
+```lua
+ui.group {
+  direction = "row",
+  gap = 4,
+  ui.icon { name = "sun", size = 28 },
+  ui.icon { name = "cloud-rain", size = 28 },
+  ui.icon { name = "bell", size = 28 },
+  ui.icon { name = "lightbulb", size = 28 },
+  ui.icon { name = "thermometer", size = 28 },
+  ui.icon { name = "door-open", size = 28 },
+  ui.icon { name = "lock", size = 28 },
+  ui.icon { name = "fan", size = 28 },
+}
+```
+
+| Option | |
+|---|---|
+| `name` | any Lucide icon name (lucide.dev/icons), such as "cloud-rain" or "door-open" |
+| `size` | in px (default 20) |
+
 ## ui.clock
 
 A clock that ticks in the browser, digital or analog, in any time zone.
 
-<img src="images/widgets/clock.png" alt="ui.clock" width="270">
+<img src="images/widgets/clock.png" alt="ui.clock" width="300">
 
 ```lua
 ui.clock { tz = "Europe/London", label = "London", date = "ddd, MMM D" }
@@ -830,7 +817,7 @@ ui.clock { tz = "Europe/London", label = "London", date = "ddd, MMM D" }
 
 ### Analog
 
-<img src="images/widgets/clock-analog.png" alt="ui.clock: Analog" width="270">
+<img src="images/widgets/clock-analog.png" alt="ui.clock: Analog" width="300">
 
 ```lua
 ui.clock { tz = "Asia/Tokyo", label = "Tokyo", style = "analog" }
@@ -838,7 +825,7 @@ ui.clock { tz = "Asia/Tokyo", label = "Tokyo", style = "analog" }
 
 ### Seconds and 12-hour time
 
-<img src="images/widgets/clock-seconds-and-12-hour-time.png" alt="ui.clock: Seconds and 12-hour time" width="270">
+<img src="images/widgets/clock-seconds-and-12-hour-time.png" alt="ui.clock: Seconds and 12-hour time" width="300">
 
 ```lua
 ui.clock {
@@ -853,7 +840,7 @@ ui.clock {
 
 Stacks other widgets in a row or a column. Most views are a group at the top.
 
-<img src="images/widgets/group.png" alt="ui.group" width="390">
+<img src="images/widgets/group.png" alt="ui.group" width="300">
 
 ```lua
 ui.group {

@@ -1,7 +1,7 @@
 import { useContext, useEffect } from "react";
 import { ModuleFrame, type Chrome, type Density } from "../components/ModuleFrame";
 import { declareSlot } from "../data/slots";
-import { flexFor, type Size } from "./Containers";
+import { InMeasuredTile, flexFor, type Size } from "./Containers";
 import { PageVisible } from "./Pages";
 
 const FRAME_PROPS = new Set(["module", "instance", "id", "title", "icon", "size", "chrome", "area", "component"]);
@@ -34,11 +34,12 @@ export function Slot(props: SlotProps) {
   const configKey = JSON.stringify(config);
   // Hidden pages keep their slots declared but idle; showing the page re-declares them as visible.
   const visible = useContext(PageVisible);
+  const measured = useContext(InMeasuredTile);
   useEffect(() => declareSlot(resolved, mod, JSON.parse(configKey), visible), [resolved, mod, configKey, visible]);
   const density: Density = typeof size === "string" && DENSITIES.has(size) ? (size as Density) : "normal";
   const layoutSize = density !== "normal" || size === "normal" ? undefined : size;
   return (
-    <div style={{ ...flexFor(layoutSize), gridArea: area }} className="flex min-h-0 min-w-0 flex-col">
+    <div data-slot={resolved} style={{ ...(measured ? { flex: "1 0 auto", minWidth: 0 } : flexFor(layoutSize)), gridArea: area }} className="flex min-w-0 flex-col">
       <ModuleFrame id={resolved} title={title} icon={icon} density={density} chrome={chrome} component={component} />
     </div>
   );

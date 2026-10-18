@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Icon } from "./icons";
-import { Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, PolarAngleAxis, RadialBar, RadialBarChart, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, Cell, Pie, PieChart, XAxis, YAxis } from "recharts";
 
 /*
  * Chart widgets, drawn by Recharts and colored only through theme tokens so every theme restyles
@@ -72,32 +72,48 @@ const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(Math.abs
 type GaugeProps = { value?: number; max?: number; unit?: string; label?: string; sub?: string; icon?: string; warn_at?: number; bad_at?: number; stops?: Stops; tone?: string; big?: boolean };
 
 /** A half-circle gauge with the value in the middle. */
+// The gauge is one SVG, so the arc and the figure scale together at any size. A 240° arc around
+// (100, 100), open at the bottom; the viewBox is just tall enough for its ends.
+const ARC = { cx: 100, cy: 100, r: 86, stroke: 18, from: 210, sweep: 240 };
+const GAUGE_VIEW = { width: 200, height: 152 };
+/** Room for the figure inside the arc, in viewBox units. */
+export const GAUGE_FIGURE_WIDTH = 2 * (ARC.r - ARC.stroke / 2) - 24;
+
+/** Font size for the figure so its digits and unit fit inside the arc; short figures cap at 60. */
+export function gaugeFigureSize(figure: string, unit = ""): number {
+  const ems = figure.length * 0.62 + unit.length * 0.6 * 0.45;
+  return Math.min(60, Math.floor(GAUGE_FIGURE_WIDTH / ems));
+}
+
+function arcPath(fraction: number): string {
+  const point = (deg: number) => {
+    const rad = (deg * Math.PI) / 180;
+    return `${(ARC.cx + ARC.r * Math.cos(rad)).toFixed(2)} ${(ARC.cy - ARC.r * Math.sin(rad)).toFixed(2)}`;
+  };
+  const sweep = ARC.sweep * fraction;
+  return `M ${point(ARC.from)} A ${ARC.r} ${ARC.r} 0 ${sweep > 180 ? 1 : 0} 1 ${point(ARC.from - sweep)}`;
+}
+
 export function Gauge({ value = 0, max = 100, unit, label, sub, icon, warn_at, bad_at, stops, tone, big = false }: GaugeProps) {
-  const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  const fraction = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   const color = gaugeColor(value, { stops, warn_at, bad_at, tone });
+  const figure = short(value);
+  const size = gaugeFigureSize(figure, unit);
   return (
     <div className={`flex min-h-0 flex-col items-center ${big ? "h-full" : ""}`}>
-      {/* big: the arc takes whatever the card gives it; small: a fixed 2:1 box */}
-      <div role="meter" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} className={`relative w-full ${big ? "min-h-0 flex-1" : "aspect-[2/1] max-w-[10em]"}`}>
-        <Sized className="absolute inset-0">
-          {(w, h) => (
-            <RadialBarChart width={w} height={h} accessibilityLayer={false} data={[{ v: pct }]} startAngle={210} endAngle={-30} innerRadius="72%" outerRadius="100%" cy="60%" barSize={12}>
-              {/* Without a fixed domain the axis scales to the data and every gauge reads as full. */}
-              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-              <RadialBar dataKey="v" background={{ fill: TRACK }} fill={color} cornerRadius={8} isAnimationActive={false} />
-            </RadialBarChart>
-          )}
-        </Sized>
-        {/* SVG text scales with the gauge, so the figure always fits inside the arc. */}
-        <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 200 100" aria-hidden>
-          <text x="100" y="74" textAnchor="middle" fontSize="34" fontWeight="600" fill="currentColor" className="tabular-nums">
-            {short(value)}
-            {unit && <tspan fontSize="16" fill="var(--color-ink-muted)">{unit}</tspan>}
+      {/* big: the gauge takes whatever the card gives it; small: a fixed box */}
+      <div role="meter" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max} className={`relative w-full ${big ? "min-h-0 flex-1" : "max-w-[8em]"}`}>
+        <svg className={big ? "absolute inset-0 h-full w-full" : "block h-auto w-full"} viewBox={`0 0 ${GAUGE_VIEW.width} ${GAUGE_VIEW.height}`} aria-hidden>
+          <path d={arcPath(1)} fill="none" stroke={TRACK} strokeWidth={ARC.stroke} strokeLinecap="round" />
+          {fraction > 0 && <path d={arcPath(fraction)} fill="none" stroke={color} strokeWidth={ARC.stroke} strokeLinecap="round" />}
+          <text x={ARC.cx} y={ARC.cy + size * 0.36} textAnchor="middle" fontSize={size} fontWeight="600" fill="currentColor" className="tabular-nums">
+            {figure}
+            {unit && <tspan fontSize={size * 0.45} fill="var(--color-ink-muted)">{unit}</tspan>}
           </text>
         </svg>
       </div>
       {label && (
-        <div className={`type-label -mt-[0.5em] flex items-center gap-[0.4em] ${big ? "text-[1.15em]" : ""}`}>
+        <div className={`type-label flex items-center gap-[0.4em] ${big ? "text-[1.15em]" : ""}`}>
           {icon && <Icon name={icon} className="size-[1.2em] shrink-0 text-ink-muted" />}
           {label}
         </div>
@@ -122,30 +138,31 @@ export function Line({ points = [], label, unit, min, max, tone = "accent", heig
   const color = TONE_VAR[tone];
   const id = `line-fill-${tone}`;
   const fill = height === "fill";
+  // The chart fills the widget as its background, with the label and latest value laid over it.
   return (
-    <div className={`flex min-h-0 flex-col ${fill ? "h-full flex-1" : ""}`}>
+    <div className={`relative flex h-full flex-col ${fill ? "min-h-0 flex-1" : ""}`} style={fill ? undefined : { minHeight: `${height}em` }}>
+      <div role="img" aria-label={label} className="absolute inset-0">
+        <Sized className="h-full w-full">
+          {(w, h) => (
+            <AreaChart width={w} height={h} accessibilityLayer={false} data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <YAxis hide domain={[min ?? "auto", max ?? "auto"]} />
+              <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${id})`} isAnimationActive={false} dot={false} />
+            </AreaChart>
+          )}
+        </Sized>
+      </div>
       {(label || last !== undefined) && (
-        <div className="flex items-baseline justify-between gap-2">
+        <div className="relative flex items-baseline justify-between gap-2">
           {label && <span className="type-sub">{label}</span>}
           {last !== undefined && <span className="type-label tabular-nums">{fmt(last)}{unit && <span className="type-sub">{unit}</span>}</span>}
         </div>
       )}
-      <div role="img" aria-label={label} className={`w-full ${fill ? "min-h-0 flex-1" : ""}`} style={fill ? undefined : { height: `${height}em` }}>
-      <Sized className="h-full w-full">
-        {(w, h) => (
-          <AreaChart width={w} height={h} accessibilityLayer={false} data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>
-            <defs>
-              <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                <stop offset="100%" stopColor={color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <YAxis hide domain={[min ?? "auto", max ?? "auto"]} />
-            <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${id})`} isAnimationActive={false} dot={false} />
-          </AreaChart>
-        )}
-      </Sized>
-      </div>
     </div>
   );
 }
@@ -182,20 +199,30 @@ export function BarWidget({ items = [], label, unit }: { items?: Item[]; label?:
 }
 
 /** A donut with an optional center figure and a legend. */
+/** Font size, in the donut's 100-unit viewBox, that fits `center` inside the hole (68% of the radius). */
+export function donutCenterSize(center: string): number {
+  return Math.min(28, Math.floor(52 / (Math.max(1, center.length) * 0.62)));
+}
+
 export function Donut({ items = [], center, label }: { items?: Item[]; center?: string | number; label?: string }) {
   return (
     <div className="flex h-full min-h-0 items-center gap-[1em]">
       <div className="relative h-full min-h-[5em] w-[45%] shrink-0">
         <Sized className="absolute inset-0">
           {(w, h) => (
-            <PieChart width={w} height={h} accessibilityLayer={false}>
+            <PieChart width={w} height={h} accessibilityLayer={false} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie data={items} dataKey="value" nameKey="label" innerRadius="68%" outerRadius="100%" paddingAngle={2} stroke="none" isAnimationActive={false}>
                 {items.map((_, i) => <Cell key={i} fill={palette(i)} />)}
               </Pie>
             </PieChart>
           )}
         </Sized>
-        {center !== undefined && <div className="pointer-events-none absolute inset-0 flex items-center justify-center"><span className="type-value">{center}</span></div>}
+        {/* SVG text scales with the ring, so the center always fits inside the hole. */}
+        {center !== undefined && (
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+            <text x="50" y="50" dy="0.35em" textAnchor="middle" fontSize={donutCenterSize(String(center))} fontWeight="600" fill="currentColor" className="tabular-nums">{center}</text>
+          </svg>
+        )}
       </div>
       <ul className="flex min-w-0 flex-col gap-[0.25em]">
         {label && <li className="type-sub mb-[0.25em]">{label}</li>}

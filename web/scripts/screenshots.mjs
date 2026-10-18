@@ -46,6 +46,11 @@ try {
       await gallery.locator(`#widget-${exampleId(ex)}`).screenshot({ path: `${out}/widgets/${exampleId(ex)}.png` });
     }
   }
+  // Tile sizes, for docs/themes.md.
+  await gallery.addInitScript(() => localStorage.setItem("dashboard.page", "layout"));
+  await gallery.goto(`http://localhost:${port}/?demo&theme=gallery`, { waitUntil: "networkidle" });
+  await gallery.waitForTimeout(600);
+  await gallery.locator("#layout-flow").screenshot({ path: `${out}/layout.png` });
   // The echo example, on its own page, after a little use: two messages and a few pongs.
   await gallery.addInitScript(() => localStorage.setItem("dashboard.page", "example"));
   await gallery.goto(`http://localhost:${port}/?demo&theme=gallery`, { waitUntil: "networkidle" });
@@ -60,7 +65,7 @@ try {
   await echo.screenshot({ path: `${out}/echo.png` });
   await gallery.close();
   writeFileSync(path.resolve(out, "../widgets.md"), widgetsDoc());
-  console.log(`docs/images/widgets/*.png (${EXAMPLES.length}), docs/images/echo.png, docs/widgets.md`);
+  console.log(`docs/images/widgets/*.png (${EXAMPLES.length}), docs/images/layout.png, docs/images/echo.png, docs/widgets.md`);
 
   const banner = await browser.newPage({ viewport: { width: 1280, height: 520 }, deviceScaleFactor: 2 });
   await banner.goto(`file://${out}/banner.html`, { waitUntil: "networkidle" });
@@ -74,7 +79,7 @@ try {
 
 function widgetsDoc() {
   const cell = (t) => t.replace(/\|/g, "\\|");
-  const img = (ex) => `<img src="images/widgets/${exampleId(ex)}.png" alt="ui.${ex.name}${ex.variant ? `: ${ex.variant}` : ""}" width="${Math.round((ex.width ?? 360) * 0.75)}">`;
+  const img = (ex) => `<img src="images/widgets/${exampleId(ex)}.png" alt="ui.${ex.name}${ex.variant ? `: ${ex.variant}` : ""}" width="300">`;
   const names = [...new Set(EXAMPLES.map((ex) => ex.name))];
   const sections = names.map((name) => {
     const [main, ...variants] = EXAMPLES.filter((ex) => ex.name === name);
