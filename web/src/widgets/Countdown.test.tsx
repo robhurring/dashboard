@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { WidgetTree } from "./WidgetTree";
-import type { WidgetNode } from "../protocol/WidgetNode";
+import type { WidgetNode } from "../data/reduce";
 import { countdownTone, relativeText, timerText } from "./Countdown";
 
 const NOW = Date.UTC(2026, 9, 19, 20, 50, 0); // 4:50 pm in New York
