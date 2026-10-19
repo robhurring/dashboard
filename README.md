@@ -121,6 +121,7 @@ whatever is sending to it (a cron job, n8n, an AI agent) can discover the contra
 | `clock` | digital or analog, any time zone | nothing |
 | `system`, `redis` | CPU, memory, load, uptime, Redis usage | nothing |
 | `openrouter` | OpenRouter credit left, and spend today, this week and this month | `OPENROUTER_API_KEY` |
+| `upcoming` | pushed events (a work schedule): the next one counting down, the following ones as rows | `HOOKS_TOKEN` |
 | `stats` | numbers pushed in over a hook (unread messages, mentions, emails, builds), one set per source | `HOOKS_TOKEN` |
 | `echo` | the worked example of a component, commands and a hook | nothing |
 

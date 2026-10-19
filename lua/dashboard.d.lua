@@ -71,6 +71,19 @@ function ui.group(props) end
 ---@return Widget
 function ui.clock(props) end
 
+--- Time until something, counting down in the browser: "in 10m", then "now · 20m left" (with `end`), then "ended".
+--- `at`/`end` are ISO 8601 or unix seconds. `style`: "countdown" (large, default), "timer" ("9:59"), or "event"
+--- (a calendar-like row). It turns `warn` inside `warn_at` minutes (10) and `bad` inside `bad_at` (2).
+---@param props { at: string|number, ["end"]?: string|number, label?: string, sub?: string, icon?: string, style?: "countdown"|"timer"|"event", seconds?: boolean, time?: boolean, tz?: string, warn_at?: number, bad_at?: number }
+---@return Widget
+function ui.countdown(props) end
+
+--- What's next from a list of events: the next one counting down large, the `count` after it as rows. Rolls on
+--- by itself as each ends, so a whole day's events can be handed over at once.
+---@param props { events: { title: string, at: string|number, ["end"]?: string|number, icon?: string, sub?: string }[], count?: integer, tz?: string, seconds?: boolean, empty?: string }
+---@return Widget
+function ui.agenda(props) end
+
 --- A half-circle gauge: `value` out of `max` (default 100). Its color is `tone` (default the theme accent) until the
 --- value reaches a stop: `stops = { [75] = "yellow", [90] = "red" }`; names map to theme tones, anything else is a CSS color.
 --- `warn_at` / `bad_at` are shorthand for two stops.

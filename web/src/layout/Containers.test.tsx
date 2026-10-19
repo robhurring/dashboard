@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { Flow, Tile, flowHeight, flowRows } from "./Containers";
+import { Column, Flow, Row, Tile, flowHeight, flowRows } from "./Containers";
 import { Slot } from "./Slot";
 
 describe("Flow", () => {
@@ -55,5 +55,12 @@ describe("Flow", () => {
     const { container } = render(<Flow><Slot module="clock" instance="flow" /></Flow>);
     const slot = container.querySelector<HTMLElement>("[data-slot]")!;
     expect(slot.style.flex).toBe("1 0 auto");
+  });
+
+  test("rows and columns take a size, like a slot: a share, or a fixed length", () => {
+    const { container } = render(<Row><Column size="42%"><p>left</p></Column><Column><p>right</p></Column></Row>);
+    const [left, right] = Array.from(container.firstElementChild!.children) as HTMLElement[];
+    expect(left.style.flex).toBe("0 0 42%");
+    expect(right.style.flex).toBe("");
   });
 });

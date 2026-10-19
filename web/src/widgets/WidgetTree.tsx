@@ -15,6 +15,8 @@ import { AudioWidget, ImageWidget } from "./Media";
 import { Progress } from "./Progress";
 import { Button, Choice, Slider, Toggle } from "./Controls";
 import { Title } from "./Title";
+import { Countdown } from "./Countdown";
+import { Agenda } from "./Agenda";
 import { Ticker } from "./Ticker";
 
 export type Send = (action: string, args?: JsonValue) => Promise<void>;
@@ -25,7 +27,7 @@ function IconWidget({ name, size = 20 }: { name?: string; size?: number }) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const WIDGETS: Record<string, ComponentType<any>> = { icon: IconWidget, stat: Stat, ticker: Ticker, list: List, row: Row, clock: Clock, group: Group, gauge: Gauge, line: Line, bar: BarWidget, donut: Donut, text: Text, markdown: Markdown, badge: Badge, image: ImageWidget, audio: AudioWidget, progress: Progress, button: Button, toggle: Toggle, slider: Slider, choice: Choice, title: Title };
+const WIDGETS: Record<string, ComponentType<any>> = { icon: IconWidget, stat: Stat, ticker: Ticker, list: List, row: Row, clock: Clock, group: Group, gauge: Gauge, line: Line, bar: BarWidget, donut: Donut, text: Text, markdown: Markdown, badge: Badge, image: ImageWidget, audio: AudioWidget, progress: Progress, button: Button, toggle: Toggle, slider: Slider, choice: Choice, title: Title, countdown: Countdown, agenda: Agenda };
 
 /*
  * Custom widgets: files in the WIDGETS_DIR folders (local/widgets by default), each default-exporting a

@@ -11,12 +11,13 @@ export function flexFor(size: Size): CSSProperties {
   return { flex: "1 1 0", ...base };
 }
 
-export function Row({ gap = 4, children }: { gap?: number; children?: ReactNode }) {
-  return <div className="flex min-h-0 min-w-0 flex-1 flex-row" style={{ gap: `${gap * 0.25}rem` }}>{children}</div>;
+/** `size` sets its share of the row or column it sits in, as a slot's does; without one, an equal share. */
+export function Row({ gap = 4, size, children }: { gap?: number; size?: Size; children?: ReactNode }) {
+  return <div className="flex min-h-0 min-w-0 flex-1 flex-row" style={{ gap: `${gap * 0.25}rem`, ...(size !== undefined ? flexFor(size) : {}) }}>{children}</div>;
 }
 
-export function Column({ gap = 4, children }: { gap?: number; children?: ReactNode }) {
-  return <div className="flex min-h-0 min-w-0 flex-1 flex-col" style={{ gap: `${gap * 0.25}rem` }}>{children}</div>;
+export function Column({ gap = 4, size, children }: { gap?: number; size?: Size; children?: ReactNode }) {
+  return <div className="flex min-h-0 min-w-0 flex-1 flex-col" style={{ gap: `${gap * 0.25}rem`, ...(size !== undefined ? flexFor(size) : {}) }}>{children}</div>;
 }
 
 /** Rows of `unit` px (with `gap` px between) that `height` px of content needs: at least one. */

@@ -18,6 +18,7 @@ export const PAGES = [
   { id: "sliders", title: "Sliders and choices" },
   { id: "buttons", title: "Buttons and media" },
   { id: "time", title: "Time and groups" },
+  { id: "countdowns", title: "Countdowns and agendas" },
 ] as const;
 export type PageId = (typeof PAGES)[number]["id"];
 
@@ -102,6 +103,9 @@ const kitchenNotes = [
 ].join("\n");
 
 // ─── The examples ─────────────────────────────────────────────────────────
+
+/** Now, when the gallery loads: countdown examples are relative to it. */
+const SOON = Math.floor(Date.now() / 1000);
 
 export const EXAMPLES: Example[] = [
   // Figures
@@ -197,6 +201,23 @@ export const EXAMPLES: Example[] = [
     w("group", { direction: "row", gap: 6 }, [w("stat", { value: "1.12", label: "Load", icon: "activity" }), w("stat", { value: "23d", label: "Uptime", icon: "timer" })]),
     w("line", { points: cpu, unit: "%", min: 0, max: 100 }),
   ]) },
+
+  // Countdowns and agendas (times are relative to when the page loads, so they always count down)
+  { name: "countdown", page: "countdowns", node: w("countdown", { at: SOON + 10 * 60, label: "Standup", icon: "users", sub: "Zoom" }),
+    lua: `ui.countdown { at = "2026-10-19T17:00:00-04:00", label = "Standup", icon = "users", sub = "Zoom" }` },
+  { name: "countdown", variant: "Happening now", page: "countdowns", node: w("countdown", { at: SOON - 5 * 60, end: SOON + 25 * 60, label: "Design review", icon: "presentation" }),
+    lua: `ui.countdown { at = meeting.start, ["end"] = meeting["end"], label = "Design review", icon = "presentation" }` },
+  { name: "countdown", variant: "Timer", page: "countdowns", node: w("countdown", { at: SOON + 9 * 60 + 5, style: "timer", label: "Tea", icon: "coffee", time: false }),
+    lua: `ui.countdown { at = ctx.now() + 545, style = "timer", label = "Tea", icon = "coffee", time = false }` },
+  { name: "countdown", variant: "As a calendar row", page: "countdowns", node: w("countdown", { at: SOON + 45 * 60, end: SOON + 75 * 60, label: "1:1 with Sam", style: "event" }),
+    lua: `ui.countdown { at = start, ["end"] = finish, label = "1:1 with Sam", style = "event" }` },
+  { name: "agenda", page: "countdowns", node: w("agenda", { events: [
+    { title: "Standup", at: SOON + 12 * 60, end: SOON + 27 * 60, icon: "users" },
+    { title: "Design review", at: SOON + 90 * 60, end: SOON + 150 * 60 },
+    { title: "1:1 with Sam", at: SOON + 210 * 60, end: SOON + 240 * 60 },
+    { title: "Deploy window", at: SOON + 300 * 60 },
+  ] }), rows: 2,
+    lua: `ui.agenda { events = state.events, count = 4 }  -- { title, at, end?, icon?, sub? }, any order` },
 ];
 
 // What each widget is and its options, shown with its first example.
@@ -539,6 +560,31 @@ export const META: Record<string, { summary: string; options: [string, string][]
         "size",
         "in px (default 20)"
       ]
+    ]
+  },
+  "countdown": {
+    "summary": "Time until something, counting down in the browser: \"in 10m\", then \"now · 20m left\" (with an end), then \"ended\". Yellow inside 10 minutes, red inside 2.",
+    "options": [
+      ["at", "when it starts: ISO 8601 or unix seconds"],
+      ["end", "when it ends (optional)"],
+      ["label", "what it is"],
+      ["sub", "a line under the time"],
+      ["icon", "a Lucide icon beside the label"],
+      ["style", "`countdown` (large, default), `timer` (\"9:59\") or `event` (a calendar row)"],
+      ["seconds", "include seconds (always shown under a minute)"],
+      ["time", "show the clock time it starts (default true)"],
+      ["tz", "time zone for the clock time (default the screen's)"],
+      ["warn_at, bad_at", "minutes left when it turns yellow, then red (10, 2)"]
+    ]
+  },
+  "agenda": {
+    "summary": "What's next from a list of events: the next one counting down large, the following ones as calendar rows. Rolls on by itself as each ends.",
+    "options": [
+      ["events", "`{ title, at, end?, icon?, sub? }`, in any order"],
+      ["count", "how many to show (default 4)"],
+      ["tz", "time zone for clock times"],
+      ["seconds", "include seconds in the countdown"],
+      ["empty", "what to say when nothing is coming up"]
     ]
   },
   "clock": {

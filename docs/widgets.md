@@ -8,7 +8,7 @@ its own React component instead: see [modules.md](modules.md).
 
 Open the dashboard with `?demo&theme=gallery` to see every widget live, a page per group.
 
-Widgets: [stat](#uistat) · [gauge](#uigauge) · [progress](#uiprogress) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [text](#uitext) · [markdown](#uimarkdown) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [button](#uibutton) · [image](#uiimage) · [audio](#uiaudio) · [title](#uititle) · [list](#uilist) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup)
+Widgets: [stat](#uistat) · [gauge](#uigauge) · [progress](#uiprogress) · [ticker](#uiticker) · [line](#uiline) · [bar](#uibar) · [donut](#uidonut) · [text](#uitext) · [markdown](#uimarkdown) · [toggle](#uitoggle) · [slider](#uislider) · [choice](#uichoice) · [button](#uibutton) · [image](#uiimage) · [audio](#uiaudio) · [title](#uititle) · [list](#uilist) · [badge](#uibadge) · [icon](#uiicon) · [clock](#uiclock) · [group](#uigroup) · [countdown](#uicountdown) · [agenda](#uiagenda)
 
 ## ui.stat
 
@@ -866,3 +866,68 @@ ui.group {
 | `direction` | `column` (default) or `row` |
 | `gap` | space between children, in quarter-rem steps |
 | `(children)` | any widgets, as array entries or `children` |
+
+## ui.countdown
+
+Time until something, counting down in the browser: "in 10m", then "now · 20m left" (with an end), then "ended". Yellow inside 10 minutes, red inside 2.
+
+<img src="images/widgets/countdown.png" alt="ui.countdown" width="300">
+
+```lua
+ui.countdown { at = "2026-10-19T17:00:00-04:00", label = "Standup", icon = "users", sub = "Zoom" }
+```
+
+| Option | |
+|---|---|
+| `at` | when it starts: ISO 8601 or unix seconds |
+| `end` | when it ends (optional) |
+| `label` | what it is |
+| `sub` | a line under the time |
+| `icon` | a Lucide icon beside the label |
+| `style` | `countdown` (large, default), `timer` ("9:59") or `event` (a calendar row) |
+| `seconds` | include seconds (always shown under a minute) |
+| `time` | show the clock time it starts (default true) |
+| `tz` | time zone for the clock time (default the screen's) |
+| `warn_at`, `bad_at` | minutes left when it turns yellow, then red (10, 2) |
+
+### Happening now
+
+<img src="images/widgets/countdown-happening-now.png" alt="ui.countdown: Happening now" width="300">
+
+```lua
+ui.countdown { at = meeting.start, ["end"] = meeting["end"], label = "Design review", icon = "presentation" }
+```
+
+### Timer
+
+<img src="images/widgets/countdown-timer.png" alt="ui.countdown: Timer" width="300">
+
+```lua
+ui.countdown { at = ctx.now() + 545, style = "timer", label = "Tea", icon = "coffee", time = false }
+```
+
+### As a calendar row
+
+<img src="images/widgets/countdown-as-a-calendar-row.png" alt="ui.countdown: As a calendar row" width="300">
+
+```lua
+ui.countdown { at = start, ["end"] = finish, label = "1:1 with Sam", style = "event" }
+```
+
+## ui.agenda
+
+What's next from a list of events: the next one counting down large, the following ones as calendar rows. Rolls on by itself as each ends.
+
+<img src="images/widgets/agenda.png" alt="ui.agenda" width="300">
+
+```lua
+ui.agenda { events = state.events, count = 4 }  -- { title, at, end?, icon?, sub? }, any order
+```
+
+| Option | |
+|---|---|
+| `events` | `{ title, at, end?, icon?, sub? }`, in any order |
+| `count` | how many to show (default 4) |
+| `tz` | time zone for clock times |
+| `seconds` | include seconds in the countdown |
+| `empty` | what to say when nothing is coming up |

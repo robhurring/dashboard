@@ -56,8 +56,8 @@ placement, use rows, columns or a grid instead.
 
 ## Rows, columns and grids
 
-`<Row>` and `<Column>` split the space evenly; give a child `size` to change its share (`2` for
-twice as much, or a length like `"40%"`). `<Grid areas={[...]} columns="..." rows="...">` is a CSS
+`<Row>` and `<Column>` split the space evenly; give a child (a slot, or a nested row or column)
+`size` to change its share (`2` for twice as much, or a length like `"40%"`). `<Grid areas={[...]} columns="..." rows="...">` is a CSS
 grid with named areas, for layouts rows and columns can't express; place a slot with `area`.
 
 ## Tabs
