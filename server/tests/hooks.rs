@@ -180,6 +180,15 @@ async fn hooks_verify_then_run_the_handler_and_publish_state() {
         .header("X-Forwarded-Prefix", "/dashboard")
         .send().await.unwrap().json().await.unwrap();
     assert_eq!(relayed["servers"], json!([{ "url": "https://d84rv7qbgol14.cloudfront.net/dashboard" }]));
+    // Forwarded (RFC 7239) wins: a proxy in front of the server (nginx) may overwrite X-Forwarded-Proto.
+    let standard: Value = reqwest::Client::new()
+        .get(format!("http://{}/hooks/openapi.json", s.addr))
+        .header("Forwarded", r#"host="d84rv7qbgol14.cloudfront.net";proto=https"#)
+        .header("X-Forwarded-Host", "d84rv7qbgol14.cloudfront.net")
+        .header("X-Forwarded-Proto", "http")
+        .header("X-Forwarded-Prefix", "/dashboard")
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(standard["servers"], json!([{ "url": "https://d84rv7qbgol14.cloudfront.net/dashboard" }]));
     let odd: Value = reqwest::Client::new()
         .get(format!("http://{}/hooks/openapi.json", s.addr))
         .header("X-Forwarded-Proto", "https")

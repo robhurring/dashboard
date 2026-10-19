@@ -65,13 +65,20 @@ async fn openapi(State(state): State<AppState>, headers: HeaderMap) -> Json<Valu
     }))
 }
 
-/// Where a caller reaches the hooks: the Host it asked on, or, behind a relay or proxy, the
-/// X-Forwarded-Host/-Proto/-Prefix it sent (e.g. https://relay.example/dashboard). Only used to describe
-/// the API, never to route or authorize.
+/// Where a caller reaches the hooks: the Host it asked on, or, behind a relay or proxy, what it
+/// forwarded (e.g. https://relay.example/dashboard). `Forwarded` (RFC 7239) wins over X-Forwarded-*,
+/// which a proxy in front (nginx) may overwrite; X-Forwarded-Prefix gives the path. Only used to
+/// describe the API, never to route or authorize.
 fn server_url(headers: &HeaderMap) -> String {
     let header = |name: &str| headers.get(name).and_then(|v| v.to_str().ok()).map(|v| v.split(',').next().unwrap_or("").trim().to_string()).filter(|v| !v.is_empty());
-    let host = header("x-forwarded-host").or_else(|| header("host")).unwrap_or_else(|| "localhost".into());
-    let proto = header("x-forwarded-proto").filter(|p| p == "https" || p == "http").unwrap_or_else(|| "http".into());
+    let forwarded = |key: &str| {
+        header("forwarded")?.split(';').find_map(|pair| {
+            let (k, v) = pair.split_once('=')?;
+            (k.trim().eq_ignore_ascii_case(key)).then(|| v.trim().trim_matches('"').to_string())
+        })
+    };
+    let host = forwarded("host").or_else(|| header("x-forwarded-host")).or_else(|| header("host")).unwrap_or_else(|| "localhost".into());
+    let proto = forwarded("proto").or_else(|| header("x-forwarded-proto")).filter(|p| p == "https" || p == "http").unwrap_or_else(|| "http".into());
     let plain_path = |p: &String| p.starts_with('/') && p.chars().all(|c| c.is_ascii_alphanumeric() || "/-_.".contains(c));
     let prefix = header("x-forwarded-prefix").filter(plain_path).unwrap_or_default();
     format!("{proto}://{host}{}", prefix.trim_end_matches('/'))
