@@ -25,7 +25,7 @@ const components: Components = {
 
 export function Text({ text = "" }: { text?: string }) {
   return (
-    <div className="h-full min-h-0 overflow-y-auto pr-[0.35em] [scrollbar-width:thin]">
+    <div className="h-full min-h-0 scroll pr-[0.35em]">
       <ReactMarkdown allowedElements={ALLOWED} unwrapDisallowed skipHtml components={components}>{text}</ReactMarkdown>
     </div>
   );

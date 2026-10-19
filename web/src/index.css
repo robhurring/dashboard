@@ -77,6 +77,33 @@ input, textarea, [contenteditable="true"] {
 }
 
 /*
+ * Scrolling like iOS, for a touchscreen: the panel pans under the finger (with the browser's own
+ * momentum) and never drags the page; a thin rounded indicator instead of a desktop scrollbar; and
+ * while there's more below, the bottom edge fades out so cut-off content reads as "more".
+ */
+@property --scroll-fade {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes scroll-fade {
+  0%, 92% { --scroll-fade: 1.75em; }
+  100% { --scroll-fade: 0px; }
+}
+@utility scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  /* Driven by the scroll position; when nothing overflows the timeline is inactive and nothing fades. */
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--scroll-fade)), transparent);
+  animation: scroll-fade linear both;
+  animation-timeline: scroll(self);
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { border-radius: 4px; background: color-mix(in srgb, var(--color-ink) 22%, transparent); }
+}
+
+/*
  * The type scale. Sizes are in em so a slot's `size` (compact / normal / large) scales a whole
  * card; every widget picks from these instead of choosing its own sizes.
  */

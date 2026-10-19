@@ -39,11 +39,11 @@ const base: Components = {
     ) : (
       <code className="rounded bg-ink/10 px-[0.3em] py-[0.05em] font-mono text-[0.88em]">{children}</code>
     ),
-  pre: ({ children }) => <pre className="mt-[0.6em] overflow-x-auto rounded-lg bg-ink/[0.07] px-[0.9em] py-[0.7em] font-mono text-[0.85em] leading-relaxed [scrollbar-width:thin]">{children}</pre>,
+  pre: ({ children }) => <pre className="mt-[0.6em] overflow-x-auto rounded-lg bg-ink/[0.07] px-[0.9em] py-[0.7em] font-mono text-[0.85em] leading-relaxed">{children}</pre>,
   blockquote: ({ children }) => <blockquote className="mt-[0.6em] border-l-2 border-accent/60 pl-[0.8em] text-ink-muted">{children}</blockquote>,
   hr: () => <hr className="my-[0.9em] border-ink/10" />,
   table: ({ children }) => (
-    <div className="mt-[0.6em] overflow-x-auto [scrollbar-width:thin]">
+    <div className="mt-[0.6em] overflow-x-auto">
       <table className="w-full border-collapse text-[0.9em]">{children}</table>
     </div>
   ),
@@ -63,7 +63,7 @@ const withoutLinks: Components = { ...base, a: ({ children }) => <span className
 
 export function Markdown({ text = "", links = true }: { text?: string; links?: boolean }) {
   return (
-    <div className="h-full min-h-0 overflow-y-auto pr-[0.35em] text-ink [scrollbar-width:thin]">
+    <div className="h-full min-h-0 scroll pr-[0.35em] text-ink">
       <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml components={links ? withLinks : withoutLinks}>{text}</ReactMarkdown>
     </div>
   );

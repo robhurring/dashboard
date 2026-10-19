@@ -54,7 +54,7 @@ export function Stats({ state }: CustomProps) {
       {s.items.length === 0 ? (
         <p className="type-sub italic">Nothing to report</p>
       ) : (
-        <ul className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(7em,1fr))] gap-[0.75em] overflow-y-auto">
+        <ul className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(7em,1fr))] gap-[0.75em] scroll">
           {s.items.map((it) => {
             const m = motions[idOf(it)];
             const motion: Motion = m?.motion ?? "none";

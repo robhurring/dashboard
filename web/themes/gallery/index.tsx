@@ -24,7 +24,7 @@ const TILES: { name: string; about: string; code: string; size?: "small" | "medi
 function widgetPage(page: (typeof PAGES)[number], n: number) {
   return (
     <Page key={page.id} id={page.id} title={page.title}>
-      <div className="flex h-full flex-col gap-4 overflow-y-auto pb-8 [scrollbar-width:thin]" style={{ fontSize: 16 }}>
+      <div className="flex h-full flex-col gap-4 scroll pb-8" style={{ fontSize: 16 }}>
         <Title text={page.title} sub={`${n} of ${total}`} details="beside" />
         <Flow>
           {EXAMPLES.filter((ex) => ex.page === page.id).map((ex) => (
@@ -54,7 +54,7 @@ function widgetPage(page: (typeof PAGES)[number], n: number) {
 function layoutPage(n: number) {
   return (
     <Page id="layout" title="Tiles and layout">
-      <div className="flex h-full flex-col gap-4 overflow-y-auto pb-8 [scrollbar-width:thin]" style={{ fontSize: 16 }}>
+      <div className="flex h-full flex-col gap-4 scroll pb-8" style={{ fontSize: 16 }}>
         <Title text="Tiles and layout" sub={`${n} of ${total} · <Flow>: columns on a grid of rows, like a home screen of widgets`} details="beside" />
         <div id="layout-flow">
           <Flow>

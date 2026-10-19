@@ -60,6 +60,22 @@ placement, use rows, columns or a grid instead.
 twice as much, or a length like `"40%"`). `<Grid areas={[...]} columns="..." rows="...">` is a CSS
 grid with named areas, for layouts rows and columns can't express; place a slot with `area`.
 
+## Tabs
+
+`<Tabs>` puts several panels in one place, picked with an iOS segmented control. Every tab stays
+mounted, so its modules keep their data and switching is instant. With `id`, the chosen tab survives
+a reload.
+
+```tsx
+<Tabs id="digest">
+  <Tab title="AI"><Slot module="news" instance="ai" topic="ai" /></Tab>
+  <Tab title="Technology"><Slot module="news" instance="tech" topic="technology" /></Tab>
+</Tabs>
+```
+
+Panels that scroll use the `scroll` class: touch panning that stays inside the panel, a thin
+indicator instead of a scrollbar, and a fade at the bottom while there's more below.
+
 ## Slot
 
 ```tsx

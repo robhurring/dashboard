@@ -49,7 +49,7 @@ export function Echo({ state, send }: CustomProps) {
       </form>
       {error && <p role="alert" className="type-sub text-bad">{error}</p>}
       <p className="type-sub">{pings} {pings === 1 ? "pong" : "pongs"}</p>
-      <ul className="flex min-h-0 flex-col gap-1 overflow-y-auto">
+      <ul className="flex min-h-0 flex-col gap-1 scroll">
         {messages.length === 0 && <li className="type-sub italic">Nothing yet</li>}
         {messages.map((m, i) => (
           <li key={`${m.at}-${i}`} className="rounded-md bg-ink/5 px-3 py-1.5">{m.text}</li>

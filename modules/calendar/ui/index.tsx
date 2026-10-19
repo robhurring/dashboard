@@ -57,7 +57,7 @@ export function Calendar({ state, config }: CustomProps) {
     return { date, label: dayName(i, date), events };
   });
   return (
-    <div className="h-full min-h-0 overflow-y-auto pr-[0.35em] [scrollbar-width:thin]">
+    <div className="h-full min-h-0 scroll pr-[0.35em]">
       {days.map((day, i) => (
         <section key={day.date.toISOString()} role="group" aria-label={day.label} className="min-w-0">
           <header className={`sticky top-0 z-10 flex items-baseline gap-[0.6em] bg-panel py-[0.35em] ${i === 0 ? "" : "mt-[0.6em]"}`}>
