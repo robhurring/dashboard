@@ -9,7 +9,7 @@ afterEach(() => vi.useRealTimers());
 const props = (state: unknown): CustomProps => ({ state: state as never, config: {}, status: null, send: vi.fn(), title: "Stats", density: "normal" });
 
 describe("Stats panel", () => {
-  test("one tile per label, with the number, tone, icon and line; and how old the push is", () => {
+  test("one tile per label, with the number, tone, icon and line; the push time is the panel header's", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items: [
       { label: "Urgent", number: 1, tone: "bad", icon: "bell", sub: "#incident" },
       { label: "Unread", number: 12 },
@@ -20,7 +20,7 @@ describe("Stats panel", () => {
     expect(within(tiles[0]).getByText("#incident")).toBeInTheDocument();
     expect(tiles[0].querySelector('[data-icon="bell"]')).not.toBeNull();
     expect(within(tiles[1]).getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("updated 5m ago")).toBeInTheDocument();
+    expect(screen.queryByText(/updated/)).toBeNull();
   });
 
   test("a number that goes up pops; an urgent one rings its bell; nothing moves on first load or on a drop", () => {

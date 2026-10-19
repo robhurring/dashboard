@@ -44,19 +44,11 @@ type State = { items: Item[]; pushed_at: number };
 const EMPTY: Item[] = [];
 const TONE: Record<string, string> = { accent: "text-accent", good: "text-good", warn: "text-warn", bad: "text-bad" };
 
-function ago(secs: number): string {
-  if (secs < 60) return "just now";
-  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
-  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
-  return `${Math.floor(secs / 86400)}d ago`;
-}
-
-/** One tile per pushed stat: icon, the number large, the label and an optional line. */
+/** One tile per pushed stat: icon, the number large, the label and an optional line. The panel header says when it was pushed. */
 export function Stats({ state }: CustomProps) {
   const s = state as State | null;
   const motions = useMotion(s?.items ?? EMPTY);
   if (!s) return <p className="type-sub italic">Waiting for the first push</p>;
-  const age = Math.max(0, Math.floor(Date.now() / 1000) - s.pushed_at);
   return (
     <div className="flex h-full min-h-0 flex-col">
       {s.items.length === 0 ? (
@@ -85,7 +77,6 @@ export function Stats({ state }: CustomProps) {
           })}
         </ul>
       )}
-      <div className="type-sub mt-[0.5em] shrink-0 text-right">updated {ago(age)}</div>
     </div>
   );
 }

@@ -173,6 +173,24 @@ describe("ModuleFrame", () => {
     expect(await screen.findByText("Waiting for the first push")).toBeInTheDocument();
   });
 
+  test("a push-only panel says in its header when it was last pushed", async () => {
+    registerComponent("counts", "Tiles", () => <div>tiles</div>);
+    const fiveMinutesAgo = Math.floor(Date.now() / 1000) - 5 * 60;
+    useData.setState({
+      catalog: [{ id: "counts", module: "counts", kind: "state", component: "Tiles", title: null, icon: null, push_only: true }],
+      instances: { counts: { rev: 3, kind: "state", state: {}, config: {}, view: null, component: "Tiles", status: status({ fetched_at: null, pushed_at: fiveMinutesAgo }) } },
+    });
+    render(<ModuleFrame id="counts" title="Work" chrome="full" />);
+    await screen.findByText("tiles");
+    expect(screen.getByText("updated 5m ago").closest("header")).not.toBeNull();
+  });
+
+  test("a pulled panel shows no updated time", () => {
+    useData.setState({ catalog: [info], instances: { w: { rev: 2, kind: "view", state: null, config: {}, view: { type: "stat", props: { value: "58°" }, children: [] }, component: null, status: status({ fetched_at: Math.floor(Date.now() / 1000) - 300 }) } } });
+    render(<ModuleFrame id="w" title="Home" />);
+    expect(screen.queryByText(/updated/)).toBeNull();
+  });
+
   test("unknown instances say so", () => {
     render(<ModuleFrame id="nope" />);
     expect(screen.getByText(/Unknown instance/)).toBeInTheDocument();

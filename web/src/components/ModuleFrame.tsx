@@ -67,6 +67,10 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
   // Out of date: the last refresh failed, so this is older data. Says how old and, on hover, why; a tap retries.
   const lastGood = status?.fetched_at ?? status?.pushed_at ?? null;
   const age = lastGood ? ageText(lastGood) : null;
+  // Push-only panels say when they last heard, top right, unless the stale badge already does.
+  const pushedAt = info?.push_only && !stale ? (status?.pushed_at ?? null) : null;
+  const now = useNow(pushedAt !== null ? 30_000 : null);
+  const updated = pushedAt !== null && <span className="type-sub shrink-0 text-[0.85em]">updated {agoText(pushedAt, now)}</span>;
   const staleBadge = stale && (
     <button
       type="button"
@@ -92,11 +96,32 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
       <header className="type-title mb-3 flex min-h-4 items-center gap-2">
         {chrome === "full" && (iconProp ?? info?.icon) && <Icon name={(iconProp ?? info?.icon)!} className="size-[1.15em] shrink-0 text-accent" />}
         {chrome === "full" && <span className="truncate">{heading}</span>}
-        {(staleBadge || refetching) && <span className="ml-auto flex items-center gap-2">{staleBadge}{refetching && <span className="animate-fade-in">{spinner}</span>}</span>}
+        {(staleBadge || refetching || updated) && <span className="ml-auto flex items-center gap-2">{updated}{staleBadge}{refetching && <span className="animate-fade-in">{spinner}</span>}</span>}
       </header>
       <div className="min-h-0 flex-1 overflow-hidden">{faded}</div>
     </section>
   );
+}
+
+/** "just now", "5m ago", "2h ago", "3d ago" since a unix time. */
+function agoText(unixSecs: number, now: number): string {
+  const secs = Math.max(0, Math.floor(now / 1000 - unixSecs));
+  if (secs < 60) return "just now";
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+/** The current time, refreshed every `everyMs` (null: never), so relative times keep counting. */
+function useNow(everyMs: number | null): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (everyMs === null) return;
+    setNow(Date.now());
+    const t = setInterval(() => setNow(Date.now()), everyMs);
+    return () => clearInterval(t);
+  }, [everyMs]);
+  return now;
 }
 
 /** "12m", "2h", "3d" since a unix time; under a minute is "1m". */
