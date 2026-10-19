@@ -32,4 +32,17 @@ describe("ui.title", () => {
     expect(screen.getByRole("heading", { name: "Garden" })).toBeInTheDocument();
     expect(container.querySelector('[data-icon="sprout"]')).not.toBeNull();
   });
+
+  test("details at the far end, and a caption size for panel headers", () => {
+    const { container } = render(<Title text="Work" icon="layout-grid" sub="updated just now" details="end" size="caption" />);
+    const root = container.firstElementChild as HTMLElement;
+    expect(root.dataset.details).toBe("end");
+    expect(root.dataset.size).toBe("caption");
+    expect(screen.getByText("updated just now").closest(".ml-auto")).not.toBeNull();
+  });
+
+  test("details can be any content, like a badge", () => {
+    render(<Title text="Work" details="end" sub={<button type="button">Out of date</button>} />);
+    expect(screen.getByRole("button", { name: "Out of date" })).toBeInTheDocument();
+  });
 });

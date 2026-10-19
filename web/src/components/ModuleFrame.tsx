@@ -3,7 +3,7 @@ import { Suspense, useEffect, useState } from "react";
 import { interpolate } from "../data/template";
 import { useModule } from "../data/useModule";
 import { WidgetTree } from "../widgets/WidgetTree";
-import { Icon } from "../widgets/icons";
+import { Title } from "../widgets/Title";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { customComponent } from "./registry";
 
@@ -70,7 +70,7 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
   // Push-only panels say when they last heard, top right, unless the stale badge already does.
   const pushedAt = info?.push_only && !stale ? (status?.pushed_at ?? null) : null;
   const now = useNow(pushedAt !== null ? 30_000 : null);
-  const updated = pushedAt !== null && <span className="type-sub shrink-0 text-[0.85em]">updated {agoText(pushedAt, now)}</span>;
+  const updated = pushedAt !== null && <span className="type-sub text-[0.85em]">updated {agoText(pushedAt, now)}</span>;
   const staleBadge = stale && (
     <button
       type="button"
@@ -93,10 +93,15 @@ export function ModuleFrame({ id, title, icon: iconProp, density = "normal", chr
   }
   return (
     <section className={`flex min-h-0 flex-1 flex-col rounded-xl bg-panel p-4 ${DENSITY_CLASS[density]}`} aria-label={heading} data-density={density}>
-      <header className="type-title mb-3 flex min-h-4 items-center gap-2">
-        {chrome === "full" && (iconProp ?? info?.icon) && <Icon name={(iconProp ?? info?.icon)!} className="size-[1.15em] shrink-0 text-accent" />}
-        {chrome === "full" && <span className="truncate">{heading}</span>}
-        {(staleBadge || refetching || updated) && <span className="ml-auto flex items-center gap-2">{updated}{staleBadge}{refetching && <span className="animate-fade-in">{spinner}</span>}</span>}
+      {/* The panel header is a Title: the name on the left, status (updated, out of date, loading) at the end. */}
+      <header className="mb-3 min-h-4">
+        <Title
+          size="caption"
+          details="end"
+          text={chrome === "full" ? heading : ""}
+          icon={chrome === "full" ? (iconProp ?? info?.icon ?? undefined) : undefined}
+          sub={(staleBadge || refetching || updated) ? <>{updated}{staleBadge}{refetching && <span className="animate-fade-in">{spinner}</span>}</> : null}
+        />
       </header>
       <div className="min-h-0 flex-1 overflow-hidden">{faded}</div>
     </section>
