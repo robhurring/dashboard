@@ -48,7 +48,7 @@ pub async fn build(cfg: &Config, persist: Persist) -> anyhow::Result<Built> {
         tracing::info!("watching modules and application.lua for changes");
     }
     let state = AppState { hub: hub.clone(), supervisor: supervisor.clone(), sessions: Arc::new(AtomicU64::new(1)) };
-    let router = http_app::router(state, &cfg.static_dir, cfg.default_theme.clone());
+    let router = http_app::router(state, &cfg.static_dir, http_app::Shell { default_theme: cfg.default_theme.clone(), return_home_after: cfg.return_home_after.clone() });
     Ok(Built { router, hub, supervisor, application: dashboard })
 }
 

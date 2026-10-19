@@ -234,6 +234,29 @@ describe("Pages", () => {
     expectPage("A!", 0);
   });
 
+  test("RETURN_HOME_AFTER from the server (its meta tag) overrides the theme's", () => {
+    const meta = document.createElement("meta");
+    meta.name = "dashboard-return-home-after";
+    document.head.append(meta);
+    try {
+      meta.content = "0";
+      const { unmount } = render(three({ returnHomeAfter: "5m" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Glance" }));
+      act(() => vi.advanceTimersByTime(60 * 60_000));
+      expectPage("B!", 1);
+      unmount();
+      localStorage.clear();
+
+      meta.content = "1m";
+      render(three({ returnHomeAfter: "5m" }));
+      fireEvent.click(screen.getByRole("tab", { name: "Glance" }));
+      act(() => vi.advanceTimersByTime(61_000));
+      expectPage("A!", 0);
+    } finally {
+      meta.remove();
+    }
+  });
+
   test("zero turns returning home off", () => {
     for (const returnHomeAfter of [0, "0", "0s", "0m"]) {
       const { unmount } = render(three({ returnHomeAfter }));

@@ -14,6 +14,9 @@ pub struct Config {
     pub widgets_dirs: Vec<PathBuf>,
     /// `DEFAULT_THEME`: the theme a screen opens without `?theme=`. Unset: the web build's choice (home).
     pub default_theme: Option<String>,
+    /// `RETURN_HOME_AFTER`: how long a screen stays on a page without a touch before going back to its
+    /// theme's home page ("5m", "30s"; "0" never). Overrides the theme's own `returnHomeAfter`. Unset: the theme's.
+    pub return_home_after: Option<String>,
     pub application_file: PathBuf,
     pub redis_url: Option<String>,
     pub redis_prefix: String,
@@ -43,6 +46,7 @@ impl Config {
             static_dir: var("STATIC_DIR").unwrap_or_else(|| "web/dist".into()).into(),
             modules_dirs: path_list(&var("MODULES_DIR").unwrap_or_else(|| "local/modules:modules".into())),
             default_theme: var("DEFAULT_THEME"),
+            return_home_after: var("RETURN_HOME_AFTER"),
             libs_dirs: path_list(&var("LIBS_DIR").unwrap_or_else(|| "local/lib:lib".into())),
             widgets_dirs: path_list(&var("WIDGETS_DIR").unwrap_or_else(|| "local/widgets".into())),
             // A private overlay's application.lua, when there is one, replaces the repo's.

@@ -16,6 +16,11 @@ export function Page({ id, children }: PageProps) {
   );
 }
 
+/** RETURN_HOME_AFTER from the server, which fills it into a meta tag; null when unset (the theme decides). */
+function returnHomeSetting(doc: Document = document): string | null {
+  return doc.querySelector<HTMLMetaElement>('meta[name="dashboard-return-home-after"]')?.content || null;
+}
+
 /** "30s", "5m" or "1h" in ms; null (off) for nothing, zero in any form, or anything unreadable. */
 function parseDuration(s: string | number | undefined): number | null {
   if (s === undefined || s === 0 || s === "0") return null;
@@ -78,7 +83,7 @@ export function Pages({ home, returnHomeAfter, children }: { home: string; retur
   // dx: travel in this gesture; dir: direction it moved a page in (0 = not yet); reverse: travel the
   // other way since then. Momentum-tail jitter is a few px and never reaches the commit distance.
   const wheel = useRef<{ dx: number; dir: number; reverse: number; lastAbs: number; timer: ReturnType<typeof setTimeout> | null }>({ dx: 0, dir: 0, reverse: 0, lastAbs: 0, timer: null });
-  const idleMs = parseDuration(returnHomeAfter);
+  const idleMs = parseDuration(returnHomeSetting() ?? returnHomeAfter);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const linger = useRef<ReturnType<typeof setTimeout> | null>(null);
 

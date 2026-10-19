@@ -1,14 +1,14 @@
 use axum::body::Body;
 use axum::http::Request;
 use dashboard::config::Config;
-use dashboard::http_app::static_router;
+use dashboard::http_app::{Shell, static_router};
 use tower::ServiceExt;
 
 #[tokio::test]
 async fn healthz_reports_ok_and_unknown_paths_serve_the_app() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("index.html"), "<p>shell</p>").unwrap();
-    let app = static_router(dir.path(), None);
+    let app = static_router(dir.path(), Shell::default());
 
     let res = app.clone().oneshot(Request::get("/healthz").body(Body::empty()).unwrap()).await.unwrap();
     assert_eq!(res.status(), 200);
@@ -29,7 +29,7 @@ async fn the_shell_is_never_cached_assets_are_immutable_and_missing_assets_are_4
     std::fs::write(dir.path().join("index.html"), "<p>shell</p>").unwrap();
     std::fs::create_dir_all(dir.path().join("assets")).unwrap();
     std::fs::write(dir.path().join("assets/index-abc123.js"), "console.log(1)").unwrap();
-    let app = static_router(dir.path(), None);
+    let app = static_router(dir.path(), Shell::default());
     let get = |path: &'static str| { let app = app.clone(); async move { app.oneshot(Request::get(path).body(Body::empty()).unwrap()).await.unwrap() } };
 
     for path in ["/", "/index.html", "/some/client/route"] {
@@ -55,13 +55,23 @@ async fn the_shell_carries_the_default_theme_from_the_environment() {
         String::from_utf8(axum::body::to_bytes(res.into_body(), 4096).await.unwrap().to_vec()).unwrap()
     };
     for path in ["/", "/index.html", "/some/client/route"] {
-        let html = body(static_router(dir.path(), Some("wall".into())), path).await;
+        let html = body(static_router(dir.path(), Shell { default_theme: Some("wall".into()), ..Shell::default() }), path).await;
         assert!(html.contains(r#"content="wall""#), "{path}: {html}");
     }
-    let html = body(static_router(dir.path(), Some(r#"x"><script>"#.into())), "/").await;
+    let html = body(static_router(dir.path(), Shell { default_theme: Some(r#"x"><script>"#.into()), ..Shell::default() }), "/").await;
     assert!(html.contains(r#"content="x&quot;&gt;&lt;script&gt;""#), "escaped: {html}");
-    let html = body(static_router(dir.path(), None), "/").await;
+    let html = body(static_router(dir.path(), Shell::default()), "/").await;
     assert!(html.contains(r#"content="""#), "{html}");
+}
+
+#[tokio::test]
+async fn the_shell_carries_return_home_after_from_the_environment() {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("index.html"), r#"<head><meta name="dashboard-return-home-after" content="" /></head>"#).unwrap();
+    let app = static_router(dir.path(), Shell { return_home_after: Some("0".into()), ..Shell::default() });
+    let res = app.oneshot(Request::get("/").body(Body::empty()).unwrap()).await.unwrap();
+    let html = String::from_utf8(axum::body::to_bytes(res.into_body(), 4096).await.unwrap().to_vec()).unwrap();
+    assert!(html.contains(r#"name="dashboard-return-home-after" content="0""#), "{html}");
 }
 
 #[test]
@@ -75,9 +85,11 @@ fn config_defaults_and_overrides() {
         "PORT" => Some("4000".into()),
         "DASHBOARD_WATCH" => Some("1".into()),
         "REDIS_URL" => Some("redis://x".into()),
+        "RETURN_HOME_AFTER" => Some("0".into()),
         _ => None,
     })
     .unwrap();
+    assert_eq!(cfg.return_home_after.as_deref(), Some("0"));
     assert_eq!(cfg.port, 4000);
     assert!(cfg.watch_files);
     assert_eq!(cfg.redis_url.as_deref(), Some("redis://x"));
