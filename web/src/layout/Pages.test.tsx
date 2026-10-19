@@ -233,4 +233,15 @@ describe("Pages", () => {
     act(() => vi.advanceTimersByTime(61_000));
     expectPage("A!", 0);
   });
+
+  test("zero turns returning home off", () => {
+    for (const returnHomeAfter of [0, "0", "0s", "0m"]) {
+      const { unmount } = render(three({ returnHomeAfter }));
+      fireEvent.click(screen.getByRole("tab", { name: "Glance" }));
+      act(() => vi.advanceTimersByTime(60 * 60_000));
+      expectPage("B!", 1);
+      unmount();
+      localStorage.clear();
+    }
+  });
 });

@@ -16,7 +16,8 @@ from any folder.
 ```
 
 Pages sit side by side and move one at a time: swipe, use the arrow keys, or click the dots. With
-`returnHomeAfter`, the screen goes back to `home` after that long without a touch. The current
+`returnHomeAfter` (`"30s"`, `"5m"`, `"1h"`), the screen goes back to `home` after that long without
+a touch; leave it out, or set it to `0`, to stay on whatever page was last shown. The current
 page survives a reload.
 
 A page that isn't showing keeps its data live (pushes still arrive) but stops its modules from

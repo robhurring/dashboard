@@ -16,11 +16,13 @@ export function Page({ id, children }: PageProps) {
   );
 }
 
-function parseDuration(s: string | undefined): number | null {
-  if (!s) return null;
-  const m = /^(\d+)(s|m|h)$/.exec(s);
+/** "30s", "5m" or "1h" in ms; null (off) for nothing, zero in any form, or anything unreadable. */
+function parseDuration(s: string | number | undefined): number | null {
+  if (s === undefined || s === 0 || s === "0") return null;
+  const m = /^(\d+)(s|m|h)$/.exec(String(s));
   if (!m) return null;
   const n = Number(m[1]);
+  if (n === 0) return null;
   return m[2] === "s" ? n * 1000 : m[2] === "m" ? n * 60_000 : n * 3_600_000;
 }
 
@@ -52,7 +54,7 @@ type Drag = { id: number; x: number; y: number; axis: "x" | "y" | null; spent: b
  * the dots at the bottom move between them, one page at a time. Regions opt out of swiping with
  * `data-swipe="off"`, or allow only touch with `data-swipe="touch"` (draggable things do this).
  */
-export function Pages({ home, returnHomeAfter, children }: { home: string; returnHomeAfter?: string; children: ReactNode }) {
+export function Pages({ home, returnHomeAfter, children }: { home: string; returnHomeAfter?: string | number; children: ReactNode }) {
   const pages = Children.toArray(children).filter(
     (c): c is ReactElement<PageProps> => isValidElement(c) && typeof (c.props as PageProps).id === "string",
   );

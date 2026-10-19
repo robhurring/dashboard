@@ -44,7 +44,7 @@ async fn list(State(state): State<AppState>) -> Json<Value> {
 }
 
 /// Every hook as one OpenAPI 3.1 document, for clients and agents that speak OpenAPI.
-async fn openapi(State(state): State<AppState>) -> Json<Value> {
+async fn openapi(State(state): State<AppState>, headers: HeaderMap) -> Json<Value> {
     let mut paths = serde_json::Map::new();
     for inst in state.supervisor.instances().await {
         let Some(def) = inst.def() else { continue };
@@ -59,9 +59,22 @@ async fn openapi(State(state): State<AppState>) -> Json<Value> {
             "version": env!("CARGO_PKG_VERSION"),
             "description": "Push data to dashboard modules. Each hook is declared by its module; GET /hooks/<instance>/<hook> describes one.",
         },
+        "servers": [{ "url": server_url(&headers) }],
         "paths": paths,
         "components": { "securitySchemes": { "hookToken": { "type": "http", "scheme": "bearer" } } },
     }))
+}
+
+/// Where a caller reaches the hooks: the Host it asked on, or, behind a relay or proxy, the
+/// X-Forwarded-Host/-Proto/-Prefix it sent (e.g. https://relay.example/dashboard). Only used to describe
+/// the API, never to route or authorize.
+fn server_url(headers: &HeaderMap) -> String {
+    let header = |name: &str| headers.get(name).and_then(|v| v.to_str().ok()).map(|v| v.split(',').next().unwrap_or("").trim().to_string()).filter(|v| !v.is_empty());
+    let host = header("x-forwarded-host").or_else(|| header("host")).unwrap_or_else(|| "localhost".into());
+    let proto = header("x-forwarded-proto").filter(|p| p == "https" || p == "http").unwrap_or_else(|| "http".into());
+    let plain_path = |p: &String| p.starts_with('/') && p.chars().all(|c| c.is_ascii_alphanumeric() || "/-_.".contains(c));
+    let prefix = header("x-forwarded-prefix").filter(plain_path).unwrap_or_default();
+    format!("{proto}://{host}{}", prefix.trim_end_matches('/'))
 }
 
 async fn describe_instance(State(state): State<AppState>, Path(instance): Path<String>) -> Response {

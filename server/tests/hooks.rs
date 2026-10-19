@@ -171,6 +171,21 @@ async fn hooks_verify_then_run_the_handler_and_publish_state() {
     assert_eq!(op["requestBody"]["content"]["application/json"]["example"], json!({ "mentions": 2 }));
     assert_eq!(op["parameters"][0], json!({ "name": "X-Signature", "in": "header", "required": true, "description": "Hex HMAC-SHA256 of the raw request body with the hook's secret; a `sha256=` prefix is accepted.", "schema": { "type": "string" } }));
     for code in ["204", "401", "404", "413", "429", "500"] { assert!(op["responses"][code].is_object(), "{code}"); }
+    // `servers` says where the hooks are reached: the Host it was asked on, or what a relay in front forwarded.
+    assert_eq!(doc["servers"], json!([{ "url": format!("http://{}", s.addr) }]));
+    let relayed: Value = reqwest::Client::new()
+        .get(format!("http://{}/hooks/openapi.json", s.addr))
+        .header("X-Forwarded-Host", "d84rv7qbgol14.cloudfront.net")
+        .header("X-Forwarded-Proto", "https")
+        .header("X-Forwarded-Prefix", "/dashboard")
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(relayed["servers"], json!([{ "url": "https://d84rv7qbgol14.cloudfront.net/dashboard" }]));
+    let odd: Value = reqwest::Client::new()
+        .get(format!("http://{}/hooks/openapi.json", s.addr))
+        .header("X-Forwarded-Proto", "https")
+        .header("X-Forwarded-Prefix", "javascript:alert(1)")
+        .send().await.unwrap().json().await.unwrap();
+    assert_eq!(odd["servers"], json!([{ "url": format!("https://{}", s.addr) }]), "a prefix that isn't a plain path is ignored");
     let open = &doc["paths"]["/hooks/pusher/open"]["post"];
     assert!(open.get("parameters").is_none(), "public hooks take no signature header");
     assert!(open["responses"].get("401").is_none());
