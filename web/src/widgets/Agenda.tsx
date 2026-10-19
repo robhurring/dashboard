@@ -30,14 +30,17 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
   if (live.length === 0) return <p className="type-sub italic">{empty}</p>;
   const [next, ...rest] = live;
   return (
-    <div className="flex h-full min-h-0 flex-col gap-[0.8em]">
+    <div className="flex h-full min-h-0 flex-col gap-[1.4em]">
       <Countdown at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.icon} sub={next.e.sub} tz={tz} seconds={seconds} />
       {rest.length > 0 && (
-        <ul className="flex min-h-0 flex-col gap-[0.35em]">
-          {rest.map(({ e }, i) => (
-            <li key={`${e.title}-${i}`}><Countdown style="event" at={e.at} end={e.end} label={e.title} tz={tz} /></li>
-          ))}
-        </ul>
+        <section className="flex min-h-0 flex-col gap-[0.55em]">
+          <h3 className="type-sub font-semibold uppercase tracking-wide">Later</h3>
+          <ul className="flex min-h-0 flex-col gap-[0.45em]">
+            {rest.map(({ e }, i) => (
+              <li key={`${e.title}-${i}`}><Countdown style="event" at={e.at} end={e.end} label={e.title} tz={tz} /></li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   );

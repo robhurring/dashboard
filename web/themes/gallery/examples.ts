@@ -216,7 +216,7 @@ export const EXAMPLES: Example[] = [
     { title: "Design review", at: SOON + 90 * 60, end: SOON + 150 * 60 },
     { title: "1:1 with Sam", at: SOON + 210 * 60, end: SOON + 240 * 60 },
     { title: "Deploy window", at: SOON + 300 * 60 },
-  ] }), rows: 2,
+  ] }), rows: 3,
     lua: `ui.agenda { events = state.events, count = 4 }  -- { title, at, end?, icon?, sub? }, any order` },
 ];
 

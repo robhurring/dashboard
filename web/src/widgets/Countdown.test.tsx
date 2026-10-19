@@ -49,7 +49,9 @@ describe("ui.countdown", () => {
   test("takes unix seconds too; during it says now and how long is left, then ended", () => {
     const at = NOW / 1000 - 5 * 60;
     draw({ at, end: at + 30 * 60, label: "1:1" });
-    expect(screen.getByText("now · 25m left")).toBeInTheDocument();
+    // Large, just "now"; what's left goes on the line under it.
+    expect(screen.getByText("now")).toHaveClass("type-value");
+    expect(screen.getByText(/^25m left/)).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(26 * min); });
     expect(screen.getByText("ended")).toBeInTheDocument();
   });
@@ -62,6 +64,11 @@ describe("ui.countdown", () => {
   test("timer style", () => {
     draw({ at: NOW / 1000 + 9 * 60 + 5, style: "timer" });
     expect(screen.getByText("9:05")).toBeInTheDocument();
+  });
+
+  test("event style keeps it on one line while it's on", () => {
+    draw({ at: NOW / 1000 - 300, end: NOW / 1000 + 1500, label: "1:1", style: "event" });
+    expect(screen.getByText("1:1").closest("[data-style=event]")).toHaveTextContent("now · 25m left");
   });
 
   test("event style: a calendar-like row with the time range, the title and how soon", () => {

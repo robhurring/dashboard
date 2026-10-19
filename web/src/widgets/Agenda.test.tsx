@@ -24,6 +24,7 @@ describe("ui.agenda", () => {
     expect(next).toHaveTextContent("in 10m");
     expect(screen.getByText("Planning").closest("[data-style]")).toHaveAttribute("data-style", "event");
     expect(screen.getByText("1:1").closest("[data-style]")).toHaveAttribute("data-style", "event");
+    expect(screen.getByText("Later")).toBeInTheDocument();
   });
 
   test("rolls on to the next event when one ends, by itself", () => {

@@ -84,6 +84,8 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   const finish = instant(end);
   if (start === null) return <p className="type-sub italic">no time</p>;
   const until = start - now;
+  const on = until <= 0 && finish !== null && now < finish;
+  const left = on ? `${span(finish! - now, { seconds, round: "up" })} left` : null;
   const status =
     until > 0 ? (style === "timer" ? timerText(until) : relativeText(until, { seconds })) :
     finish !== null && now < finish ? `now · ${span(finish - now, { seconds, round: "up" })} left` :
@@ -96,8 +98,8 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
 
   if (style === "event") {
     return (
-      <div data-style="event" data-over={over} className={`flex min-w-0 items-baseline gap-[0.8em] rounded-md bg-ink/5 px-[0.6em] py-[0.35em] ${over ? "opacity-40" : ""}`}>
-        {when && <span className="type-sub shrink-0 whitespace-nowrap tabular-nums">{when}</span>}
+      <div data-style="event" data-over={over} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg bg-ink/5 px-[0.8em] py-[0.55em] ${over ? "opacity-40" : ""}`}>
+        {when && <span className="type-sub w-[9.5em] shrink-0 whitespace-nowrap tabular-nums">{when}</span>}
         <span className="type-label min-w-0 flex-1 truncate">{label}</span>
         <span className={`type-sub shrink-0 font-semibold tabular-nums ${tone ? TONE[tone] : ""}`}>{status}</span>
       </div>
@@ -106,13 +108,14 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   return (
     <div data-style={style} data-over={over} className={`flex min-w-0 flex-col ${over ? "opacity-40" : ""}`}>
       {label && (
-        <div className="flex items-center gap-[0.4em] text-ink-muted">
-          {icon && <Icon name={icon} className={`size-[1.1em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
-          <span className="type-sub truncate">{label}</span>
+        <div className="flex items-center gap-[0.45em] text-ink-muted">
+          {icon && <Icon name={icon} className={`size-[1.15em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
+          <span className="type-label truncate">{label}</span>
         </div>
       )}
-      <div className={`type-value mt-[0.2em] tabular-nums ${tone ? TONE[tone] : ""}`}>{status}</div>
-      {(when || sub) && <div className="type-sub mt-[0.15em] truncate">{[when, sub].filter(Boolean).join(" · ")}</div>}
+      {/* While it's on: large "now", with what's left on the line below. */}
+      <div className={`type-value mt-[0.4em] tabular-nums ${tone ? TONE[tone] : ""}`}>{on ? "now" : status}</div>
+      {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate">{[left, when, sub].filter(Boolean).join(" · ")}</div>}
     </div>
   );
 }
