@@ -51,16 +51,12 @@ function ago(secs: number): string {
   return `${Math.floor(secs / 86400)}d ago`;
 }
 
-/**
- * One tile per pushed stat: icon, the number large, the label and an optional line. With more than one
- * source on the panel, each tile names its source.
- */
+/** One tile per pushed stat: icon, the number large, the label and an optional line. */
 export function Stats({ state }: CustomProps) {
   const s = state as State | null;
   const motions = useMotion(s?.items ?? EMPTY);
   if (!s) return <p className="type-sub italic">Waiting for the first push</p>;
   const age = Math.max(0, Math.floor(Date.now() / 1000) - s.pushed_at);
-  const captioned = new Set(s.items.map((it) => it.source)).size > 1;
   return (
     <div className="flex h-full min-h-0 flex-col">
       {s.items.length === 0 ? (
@@ -79,7 +75,6 @@ export function Stats({ state }: CustomProps) {
                   </span>
                 )}
                 <span className="type-sub truncate">{it.label}</span>
-                {captioned && it.source && <span className="type-sub ml-auto shrink-0 text-[0.75em] opacity-70">{it.source}</span>}
               </div>
               <div className={`type-value mt-[0.2em] ${it.tone ? TONE[it.tone] : ""}`}>
                 <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>

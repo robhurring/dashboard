@@ -51,19 +51,14 @@ describe("Stats panel", () => {
     expect(tile("Urgent")).toHaveAttribute("data-motion", "none"); // unchanged
   });
 
-  test("the same label from two sources is two tiles, each captioned with its source", () => {
+  test("the same label from two sources is two tiles, with no source caption squeezing the label", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items: [
-      { source: "email", label: "Unread", number: 4 },
-      { source: "slack", label: "Unread", number: 12 },
+      { source: "email", label: "Unread", number: 4, icon: "mail" },
+      { source: "slack", label: "Unread", number: 12, icon: "inbox" },
     ] })} />);
     const tiles = screen.getAllByRole("listitem");
     expect(tiles).toHaveLength(2);
-    expect(within(tiles[0]).getByText("email")).toBeInTheDocument();
-    expect(within(tiles[1]).getByText("slack")).toBeInTheDocument();
-  });
-
-  test("with a single source, no caption", () => {
-    render(<Stats {...props({ pushed_at: 1_800_000_000, items: [{ source: "slack", label: "Unread", number: 1 }, { source: "slack", label: "DMs", number: 2 }] })} />);
+    expect(screen.queryByText("email")).toBeNull();
     expect(screen.queryByText("slack")).toBeNull();
   });
 
