@@ -57,6 +57,11 @@ async fn pushed_events_count_down_to_the_next_one() {
     assert_eq!(push(json!({ "source": "work", "events": [] })).await, 204);
     assert_eq!(titles(&s.hub.get("upcoming:work").await.unwrap().state), vec!["Dentist"]);
 
+    // replace: true makes this push the whole agenda, dropping every other source.
+    assert_eq!(push(json!({ "source": "work", "events": [{ "title": "Standup", "at": now + 600 }] })).await, 204);
+    assert_eq!(push(json!({ "source": "home", "replace": true, "events": [{ "title": "Dentist", "at": now + 300 }] })).await, 204);
+    assert_eq!(titles(&s.hub.get("upcoming:work").await.unwrap().state), vec!["Dentist"]);
+
     // An event with no end lingers a little after it starts, then goes.
     assert_eq!(push(json!({ "source": "home", "events": [{ "title": "Just started", "at": now - 60 }, { "title": "Long gone", "at": now - 3600 }] })).await, 204);
     assert_eq!(titles(&s.hub.get("upcoming:work").await.unwrap().state), vec!["Just started"]);

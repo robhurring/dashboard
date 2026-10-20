@@ -1,7 +1,7 @@
 -- Events pushed in from anywhere (a work calendar the dashboard can't read, a deploy, a train), shown
 -- by ui.agenda: the next one counting down, the few after it as calendar rows. Push a whole day at once;
 -- the screen rolls to the next event as each ends. Each push names its source and replaces only that
--- source's events. Body:
+-- source's events; `"replace": true` makes a push the whole agenda. Body:
 --   { "source": "work", "events": [ { "title": "Standup", "at": "2026-10-19T17:00:00-04:00", "end": "...", "icon": "users" } ] }
 -- `at` and `end` are ISO 8601 (an offset or Z; without one, the host time zone) or unix seconds.
 -- One panel per instance: <Slot module="upcoming" instance="work" /> takes pushes at /hooks/upcoming:work/push.
@@ -45,13 +45,14 @@ return {
   hooks = {
     push = {
       description = "Set one source's events (e.g. a work schedule). Send all of that source's events each time: "
-        .. "its events not sent disappear; other sources are kept. An empty list clears the source.",
+        .. "its events not sent disappear; other sources are kept, unless `replace` is true. An empty list clears the source.",
       auth = { token = "HOOKS_TOKEN" },
       schema = {
         type = "object",
         required = { "events" },
         properties = {
           source = { type = "string", description = "Who is sending, e.g. work. Default: \"default\"" },
+          replace = { type = "boolean", description = "This push is the whole agenda: drop every other source's events too" },
           events = {
             type = "array",
             items = {
@@ -84,8 +85,10 @@ return {
         local source = type(body.source) == "string" and body.source ~= "" and body.source or "default"
         local now = ctx.now()
         local events = json.array({})
-        for _, e in ipairs((ctx.state and ctx.state.events) or {}) do
-          if e.source ~= source and not over(e, now) then events[#events + 1] = e end
+        if body.replace ~= true then
+          for _, e in ipairs((ctx.state and ctx.state.events) or {}) do
+            if e.source ~= source and not over(e, now) then events[#events + 1] = e end
+          end
         end
         for i, e in ipairs(body.events) do
           if type(e) ~= "table" or type(e.title) ~= "string" then error("event " .. i .. " needs a title") end

@@ -1,6 +1,6 @@
 -- Numbers pushed in from anywhere: unread messages, mentions, emails, open documents, builds, ...
 -- Each push names its source and replaces only that source's numbers, so several senders share one
--- panel without overwriting each other. Body:
+-- panel without overwriting each other; `"replace": true` makes a push the whole panel. Body:
 --   { "source": "slack", "stats": { "Unread": { "number": 12 }, "Urgent": { "number": 2, "tone": "bad", "icon": "bell" } } }
 -- One panel per instance: <Slot module="stats" instance="work" /> takes pushes at /hooks/stats:work/push.
 local TONES = { accent = true, good = true, warn = true, bad = true }
@@ -30,7 +30,7 @@ return {
   hooks = {
     push = {
       description = "Set one source's numbers (e.g. slack, email). Send all of that source's labels each time: "
-        .. "its labels not sent disappear; other sources are kept. An empty `stats` clears the source.",
+        .. "its labels not sent disappear; other sources are kept, unless `replace` is true. An empty `stats` clears the source.",
       -- The shared hook token from the environment: send "Authorization: Bearer $HOOKS_TOKEN".
       auth = { token = "HOOKS_TOKEN" },
       schema = {
@@ -38,6 +38,7 @@ return {
         required = { "stats" },
         properties = {
           source = { type = "string", description = "Who is sending, e.g. slack, email, docs. Default: \"default\"" },
+          replace = { type = "boolean", description = "This push is the whole panel: drop every other source's stats too" },
           stats = {
             type = "object",
             description = "Label → stat. Labels are shown as given.",
@@ -74,10 +75,12 @@ return {
         local fresh = {}
         for label, v in pairs(body.stats) do fresh[#fresh + 1] = stat(source, label, v) end
 
-        -- Keep every other source's stats; replace this one's.
+        -- Keep every other source's stats and replace this one's; with replace, keep nothing.
         local items = json.array({})
-        for _, it in ipairs((ctx.state and ctx.state.items) or {}) do
-          if it.source ~= source then items[#items + 1] = it end
+        if body.replace ~= true then
+          for _, it in ipairs((ctx.state and ctx.state.items) or {}) do
+            if it.source ~= source then items[#items + 1] = it end
+          end
         end
         for _, it in ipairs(fresh) do items[#items + 1] = it end
         table.sort(items, function(a, b)

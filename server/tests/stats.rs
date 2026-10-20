@@ -58,6 +58,13 @@ async fn each_source_replaces_only_its_own_stats() {
     assert_eq!(push(json!({ "stats": { "Docs": { "number": 5, "icon": "file-text" } } })).await, 204);
     assert_eq!(tiles(&state().await), vec!["default/Docs=5", "slack/Unread=2"]);
 
+    // replace: true makes this push the whole panel, dropping every other source.
+    assert_eq!(push(json!({ "source": "email", "stats": { "Inbox": { "number": 9 } } })).await, 204);
+    assert_eq!(push(json!({ "source": "slack", "replace": true, "stats": { "Unread": { "number": 1 }, "DMs": { "number": 2 } } })).await, 204);
+    assert_eq!(tiles(&state().await), vec!["slack/DMs=2", "slack/Unread=1"]);
+    assert_eq!(push(json!({ "source": "default", "stats": { "Docs": { "number": 5, "icon": "file-text" } } })).await, 204);
+    assert_eq!(push(json!({ "source": "slack", "stats": { "Unread": { "number": 2 } } })).await, 204);
+
     // Bad shapes are refused and keep the last state; unknown tones are dropped.
     assert_eq!(push(json!({ "source": "slack", "stats": { "Unread": { "count": 4 } } })).await, 500);
     assert_eq!(push(json!({ "source": "slack", "stats": [1, 2] })).await, 500);
