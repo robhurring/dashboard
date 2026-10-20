@@ -51,3 +51,90 @@ echo '{"text":"Backup finished"}' | bin/hook echo/say -
 
 It reads `DASHBOARD_URL` and `HOOKS_TOKEN` from your environment or `.env`, and sends Cloudflare
 Access service-token headers when `CF_ACCESS_CLIENT_ID` and `CF_ACCESS_CLIENT_SECRET` are set.
+
+## Push panels: `stats` and `upcoming`
+
+Two shipped modules exist only to be pushed to: `stats` (numbers) and `upcoming` (a schedule). Each
+instance is one panel, and its hook is `POST /hooks/<instance>/push`: `<Slot module="stats"
+instance="work" />` takes pushes at `/hooks/stats:work/push`. A bare `<Slot module="stats" />` works
+too, at `/hooks/stats/push`. Declare the instance in `application.lua` (`{ id = "stats:work" }`) so
+pushes land even while no screen shows it.
+
+Both authenticate with `Authorization: Bearer $HOOKS_TOKEN` and answer:
+
+| Status | Meaning |
+|---|---|
+| `204` | applied; every screen showing the panel updates at once |
+| `401` | missing or wrong token |
+| `413` | body over 64 KB |
+| `500` | the body didn't fit the shape below; the panel keeps what it had |
+
+### Sources and replacing
+
+Every push names a `source` (default `"default"`): who is sending, such as `slack`, `email` or `work`.
+
+- A push **replaces that source's** stats or events, and keeps every other source's. Senders on
+  different schedules share one panel without overwriting each other.
+- Send **everything that source has** each time: anything of that source left out disappears.
+- An empty `stats` (`{}`) or `events` (`[]`) **clears that source**.
+- `"replace": true` makes the push **the whole panel**: every other source is dropped as well.
+
+### `stats`: numbers
+
+```json
+{
+  "source": "slack",
+  "replace": false,
+  "stats": {
+    "@ mentions": { "number": 3, "icon": "at-sign", "tone": "warn" },
+    "Unread":     { "number": 12, "icon": "inbox" }
+  }
+}
+```
+
+`stats` maps a label (shown as written) to:
+
+| Field | Required | Meaning |
+|---|---|---|
+| `number` | yes | the figure shown large; any JSON number, shown as sent |
+| `icon` | | a [Lucide](https://lucide.dev/icons) icon name |
+| `tone` | | `accent`, `good`, `warn` or `bad`: the figure's color |
+| `sub` | | one short line under the figure |
+| `order` | | sort key, lower first (default 1000); then by label |
+| `ring` | | ring the bell when the number goes up (`tone: "bad"` always does) |
+
+Tiles are a grid: about nine fit a half-width panel on a 1280×720 screen. A number that goes up pops.
+
+### `upcoming`: a schedule
+
+```json
+{
+  "source": "work",
+  "replace": false,
+  "events": [
+    { "title": "Meeting", "at": "2026-10-20T10:00:00-04:00", "end": "2026-10-20T10:30:00-04:00", "icon": "users" },
+    { "title": "1:1",     "at": 1792504800, "end": 1792506600 }
+  ]
+}
+```
+
+Each event:
+
+| Field | Required | Meaning |
+|---|---|---|
+| `title` | yes | what it is |
+| `at` | yes | start: ISO 8601 with an offset or `Z` (without one, the server's `TZ`), or unix seconds |
+| `end` | | end, in the same forms; lets the panel say "now · 20m left", then drop it |
+| `icon` | | a Lucide icon name |
+| `sub` | | one short line, e.g. a room |
+
+Order doesn't matter. Push a whole day at once: the panel counts down to the next event, shows
+"now" while one is on, and rolls on as each ends. Events that are over are dropped (one with no `end`
+ten minutes after it starts).
+
+### Keeping private data private
+
+The dashboard shows what it's sent, so a sender on another network (a work laptop, say) should send
+glances, not content: counts under labels of its own choosing, and meetings as times with a generic
+title (`Meeting`, `1:1`, `External`, `Focus`) rather than subjects, attendees or links. The relay and
+the hooks keep no request bodies in their logs.
