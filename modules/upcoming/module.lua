@@ -93,7 +93,8 @@ return {
         for i, e in ipairs(body.events) do
           if type(e) ~= "table" or type(e.title) ~= "string" then error("event " .. i .. " needs a title") end
           local at = seconds(ctx, e.at)
-          if not at then error("event " .. i .. " (" .. e.title .. ") needs `at`: ISO 8601 or unix seconds") end
+          -- Errors name the event by position only: titles may be private, and errors are logged.
+          if not at then error("event " .. i .. " needs `at`: ISO 8601 or unix seconds") end
           local ev = {
             source = source,
             title = e.title,

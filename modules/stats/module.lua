@@ -7,7 +7,8 @@ local TONES = { accent = true, good = true, warn = true, bad = true }
 
 local function stat(source, label, v)
   if type(v) ~= "table" or type(v.number) ~= "number" then
-    error("stat " .. tostring(label) .. " needs a numeric `number`")
+    -- No label in the message: labels may be private, and errors are logged.
+    error("every stat needs a numeric `number`")
   end
   return {
     source = source,
