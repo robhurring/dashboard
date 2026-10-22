@@ -78,7 +78,7 @@ describe("ui.agenda", () => {
     expect(top).toHaveAttribute("data-pending", "true");
     expect(top).toHaveTextContent("in 3m"); // relative, even inside the last five minutes
     expect(top).not.toHaveTextContent("2:59"); // never the timer
-    expect(top).toHaveTextContent("4:53 pm"); // its start time, in the details line
+    expect(top).not.toHaveTextContent(/[ap]m\b/); // no clock times in Up next
     expect(top).not.toHaveTextContent("not answered"); // the tint and the bell say it
     const bar = top.querySelector("[data-bar]")!;
     expect(bar).toHaveAttribute("data-disabled", "true");
@@ -117,5 +117,18 @@ describe("ui.agenda", () => {
       for (const title of ["A", "B", "C"]) expect(screen.queryAllByText(title).length).toBeLessThanOrEqual(1);
       unmount();
     }
+  });
+
+  test("just the relative bits: no clock times anywhere, only how soon and what's left", () => {
+    draw({ events: [
+      { title: "Standup", at: t(20), end: t(35), sub: "Zoom" },
+      { title: "Design review", at: t(90), end: t(150) },
+    ], tz: "America/New_York" });
+    const top = screen.getByText("Standup").closest("[data-style=countdown]")!;
+    expect(top).toHaveTextContent("in 20m");
+    expect(top).toHaveTextContent("Zoom");
+    const row = screen.getByText("Design review").closest("[data-style=event]")!;
+    expect(row).toHaveTextContent("in 1h 30m");
+    for (const el of [top, row]) expect(el).not.toHaveTextContent(/\d:\d\d\s?[ap]m/);
   });
 });
