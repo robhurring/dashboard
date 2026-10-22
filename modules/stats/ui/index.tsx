@@ -111,7 +111,8 @@ export function Stats({ state, config }: CustomProps) {
   // One number size across the panel: every tile's number box is the same, each leaves room for a detail
   // line when any tile has one, and widths are sized for the widest number.
   const anySub = items.some((it) => it.sub);
-  const digits = Math.max(1, ...items.map((it) => String(it.number).length));
+  // Sized as if for 3 digits, so single digits don't balloon; 4 or more shrink everything to fit.
+  const digits = Math.max(3, ...items.map((it) => String(it.number).length));
   return (
     <ul
       ref={ref}

@@ -47,4 +47,5 @@
  */
 .stats-box { padding-bottom: var(--detail); }
 /* Digits have no descenders: a tight line lets the glyphs (about 0.72em tall) fill most of the box. */
-.stats-number { font-size: min(118cqh, calc(98cqw / (var(--digits) * 0.6))); line-height: 0.8; }
+/* ...up to a ceiling: with few tiles, a number that fills its tile is too big to sit comfortably. */
+.stats-number { font-size: min(118cqh, calc(98cqw / (var(--digits) * 0.6)), 6em); line-height: 0.8; }

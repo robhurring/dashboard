@@ -159,4 +159,16 @@ describe("Stats panel", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { max: 4 })} />);
     expect(screen.getAllByRole("listitem")).toHaveLength(4);
   });
+
+  test("numbers are sized for 3 digits, so small numbers don't balloon; 4+ digits shrink them", () => {
+    const digits = (items: unknown[]) => {
+      const { unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+      const d = document.querySelector<HTMLElement>(".stats-number")!.style.getPropertyValue("--digits");
+      unmount();
+      return d;
+    };
+    expect(digits([{ label: "A", number: 2 }, { label: "B", number: 8 }])).toBe("3");
+    expect(digits([{ label: "A", number: 2 }, { label: "B", number: 128 }])).toBe("3");
+    expect(digits([{ label: "A", number: 2 }, { label: "B", number: 1284 }])).toBe("4");
+  });
 });
