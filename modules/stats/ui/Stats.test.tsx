@@ -105,22 +105,23 @@ describe("Stats panel", () => {
     expect(screen.getAllByRole("listitem").every((t) => t.style.gridColumn === "")).toBe(true);
   });
 
-  test("every number is the same size: the same box in every tile, sized for the widest number", () => {
+  test("every number sits in the middle of the same box, sized for the widest number; details pin to the bottom", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items: [
       { label: "A", number: 8, sub: "detail" },
       { label: "B", number: 1284 },
     ] })} />);
     const tiles = screen.getAllByRole("listitem");
-    // Tiles without a detail keep an empty, invisible line, so the number boxes match in height.
-    expect(tiles[1].querySelector("[data-sub=placeholder]")).not.toBeNull();
-    expect(tiles[0].querySelector("[data-sub=placeholder]")).toBeNull();
-    const digits = tiles.map((t) => t.querySelector<HTMLElement>(".stats-number")!.style.getPropertyValue("--digits"));
-    expect(digits).toEqual(["4", "4"]);
+    const numbers = tiles.map((t) => t.querySelector<HTMLElement>(".stats-number")!);
+    expect(numbers.map((n) => n.style.getPropertyValue("--digits"))).toEqual(["4", "4"]);
+    // Room for a detail line is left in every tile when any has one, so the numbers match.
+    expect(tiles.map((t) => t.querySelector<HTMLElement>(".stats-box")!.style.getPropertyValue("--detail"))).toEqual(["1.35em", "1.35em"]);
+    // The detail is out of the centering: pinned to the bottom of the number's box.
+    expect(screen.getByText("detail").closest("[data-sub]")).toHaveClass("absolute");
   });
 
-  test("with no details anywhere, no placeholder lines", () => {
+  test("with no details anywhere, nothing is held back for them", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items: [{ label: "A", number: 1 }, { label: "B", number: 2 }] })} />);
-    expect(document.querySelector("[data-sub=placeholder]")).toBeNull();
+    expect(document.querySelector<HTMLElement>(".stats-box")!.style.getPropertyValue("--detail")).toBe("0px");
   });
 
   test("align: left (default) or center", () => {

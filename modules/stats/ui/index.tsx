@@ -105,8 +105,8 @@ export function Stats({ state, config }: CustomProps) {
   // left: number and detail at the bottom left, under the label; center: the number in the middle.
   const align = config?.align === "center" ? "center" : "left";
   const { cols, rows } = gridFor(s.items.length, size.width, size.height);
-  // One number size across the panel: every tile's number box is the same height (tiles without a detail
-  // line keep an empty one when any tile has one), and widths are sized for the widest number.
+  // One number size across the panel: every tile's number box is the same, each leaves room for a detail
+  // line when any tile has one, and widths are sized for the widest number.
   const anySub = s.items.some((it) => it.sub);
   const digits = Math.max(1, ...s.items.map((it) => String(it.number).length));
   return (
@@ -123,7 +123,7 @@ export function Stats({ state, config }: CustomProps) {
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
         return (
-          <li key={idOf(it)} data-motion={motion} className={`${fill ? "" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
+          <li key={idOf(it)} data-motion={motion} className={`${fill ? "" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.85em] py-[0.6em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
             <div className="flex items-center gap-[0.45em] text-ink-muted">
               {it.icon && (
                 <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
@@ -134,22 +134,23 @@ export function Stats({ state, config }: CustomProps) {
             </div>
             {fill ? (
               <>
-                {/* The number's box is everything between the label and the detail line; the number fills
-                    it (container units, see stats.css), vertically centered. */}
-                <div className={`stats-box flex min-h-0 flex-1 items-center ${align === "center" ? "justify-center" : "justify-start"}`}>
+                {/* The number's box is everything below the label. The number fills it (container units, see
+                    stats.css) and centers above a detail strip every tile keeps, so it sits the same in every
+                    tile; the detail line pins to the bottom. */}
+                <div
+                  className={`stats-box relative flex min-h-0 flex-1 items-center ${align === "center" ? "justify-center" : "justify-start"}`}
+                  style={{ "--detail": anySub ? "1.35em" : "0px" } as React.CSSProperties}
+                >
                   <div
                     className={`stats-number font-semibold tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
                     style={{ "--digits": digits } as React.CSSProperties}
                   >
                     <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
                   </div>
+                  {it.sub && (
+                    <div data-sub="detail" className={`type-sub absolute inset-x-0 bottom-0 truncate ${align === "center" ? "text-center" : ""}`}><Inline text={it.sub} /></div>
+                  )}
                 </div>
-                {it.sub ? (
-                  <div className={`type-sub max-w-full truncate ${align === "center" ? "text-center" : ""}`}><Inline text={it.sub} /></div>
-                ) : anySub ? (
-                  // Keeps this tile's number box the same height as the tiles that have a detail line.
-                  <div data-sub="placeholder" aria-hidden className="type-sub invisible">&nbsp;</div>
-                ) : null}
               </>
             ) : (
               <>

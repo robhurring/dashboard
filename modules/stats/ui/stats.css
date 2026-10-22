@@ -37,8 +37,14 @@
 }
 
 /*
- * The number fills its box (the space between the label and the detail line): as tall as the box, or as
+ * The number fills its box (the space below the label): as tall as the box, or as
  * wide as it allows for the panel's widest number, whichever is smaller. Every tile's box is the same.
  */
 .stats-box { container-type: size; }
-.stats-number { font-size: min(92cqh, calc(96cqw / (var(--digits) * 0.6))); line-height: 1; }
+/*
+ * Every tile keeps the same strip at the bottom of its box for a detail line (--detail, set on the box;
+ * zero when no tile has one), and the number centers in the space above it, filling it.
+ */
+.stats-box { padding-bottom: var(--detail); }
+/* Digits have no descenders: a tight line lets the glyphs (about 0.72em tall) fill most of the box. */
+.stats-number { font-size: min(118cqh, calc(98cqw / (var(--digits) * 0.6))); line-height: 0.8; }
