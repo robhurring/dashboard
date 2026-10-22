@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* The theme font ships with the app, so every screen (the kiosk has no Figtree installed) renders the same. */
+@import "@fontsource-variable/figtree";
 /* Module UIs under modules/<name>/ui use the same utilities, so Tailwind scans them too. */
 @source "../modules";
 
