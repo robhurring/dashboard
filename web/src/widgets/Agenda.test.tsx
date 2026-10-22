@@ -42,4 +42,23 @@ describe("ui.agenda", () => {
     draw({ events: [] });
     expect(screen.getByText("Nothing coming up")).toBeInTheDocument();
   });
+
+  test("invites not answered yet: a New strip at the top, and marked in the timeline", () => {
+    draw({ events: [
+      { title: "Standup", at: t(10), end: t(25) },
+      { title: "Planning", at: t(90), end: t(120), response: "pending" },
+    ] });
+    const strip = screen.getByRole("region", { name: "New · respond" });
+    expect(strip).toHaveTextContent("Planning");
+    const row = screen.getAllByText("Planning").map((el) => el.closest("[data-style=event]")).find((r) => r && !strip.contains(r))!;
+    expect(row).toHaveTextContent("unanswered");
+  });
+
+  test("no strip when nothing is pending; the bell rings when a new invite arrives, not on first load", () => {
+    const events = [{ title: "Standup", at: t(10) }];
+    const { rerender } = render(<WidgetTree node={{ type: "agenda", props: { events }, children: [] }} send={vi.fn()} />);
+    expect(screen.queryByRole("region", { name: "New · respond" })).toBeNull();
+    rerender(<WidgetTree node={{ type: "agenda", props: { events: [...events, { title: "Sync", at: t(60), response: "pending" }] }, children: [] }} send={vi.fn()} />);
+    expect(screen.getByRole("region", { name: "New · respond" })).toHaveAttribute("data-ringing", "true");
+  });
 });

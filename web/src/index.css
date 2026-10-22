@@ -105,6 +105,17 @@ input, textarea, [contenteditable="true"] {
   &::-webkit-scrollbar-thumb { border-radius: 4px; background: color-mix(in srgb, var(--color-ink) 22%, transparent); }
 }
 
+/* Something new wants a response: a soft glow, and a bell that swings. */
+@keyframes attention {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent); }
+  50% { box-shadow: 0 0 0 0.35em color-mix(in srgb, var(--color-accent) 35%, transparent); }
+}
+@keyframes ring {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(18deg); }
+  75% { transform: rotate(-18deg); }
+}
+
 /*
  * The type scale. Sizes are in em so a slot's `size` (compact / normal / large) scales a whole
  * card; every widget picks from these instead of choosing its own sizes.

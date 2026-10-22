@@ -62,6 +62,18 @@ async fn pushed_events_count_down_to_the_next_one() {
     assert_eq!(push(json!({ "source": "home", "replace": true, "events": [{ "title": "Dentist", "at": now + 300 }] })).await, 204);
     assert_eq!(titles(&s.hub.get("upcoming:work").await.unwrap().state), vec!["Dentist"]);
 
+    // An invite not yet answered carries response: "pending"; anything else isn't kept.
+    assert_eq!(push(json!({ "source": "work", "replace": true, "events": [
+        { "title": "Meeting", "at": now + 3600, "response": "pending" },
+        { "title": "1:1", "at": now + 7200, "response": "accepted" },
+    ] })).await, 204);
+    let evs = s.hub.get("upcoming:work").await.unwrap().state["events"].clone();
+    assert_eq!(evs[0]["response"], "pending");
+    assert!(evs[1].get("response").is_none(), "only pending is kept: {evs}");
+    let view = s.hub.get("upcoming:work").await.unwrap().view.unwrap();
+    assert_eq!(view["props"]["events"][0]["response"], "pending");
+    assert_eq!(push(json!({ "source": "home", "replace": true, "events": [{ "title": "Dentist", "at": now + 300 }] })).await, 204);
+
     // An event with no end lingers a little after it starts, then goes.
     assert_eq!(push(json!({ "source": "home", "events": [{ "title": "Just started", "at": now - 60 }, { "title": "Long gone", "at": now - 3600 }] })).await, 204);
     assert_eq!(titles(&s.hub.get("upcoming:work").await.unwrap().state), vec!["Just started"]);

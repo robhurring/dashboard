@@ -64,6 +64,7 @@ return {
                 ["end"] = { description = "End, same forms; optional" },
                 icon = { type = "string", description = "A Lucide icon name, e.g. users, video, phone" },
                 sub = { type = "string", description = "One short line, e.g. a room or who with" },
+                response = { type = "string", description = "\"pending\" for an invite not answered yet (yes, no or maybe): shown under \"New · respond\" until answered" },
               },
             },
           },
@@ -74,6 +75,7 @@ return {
         events = {
           { title = "Standup", at = "2026-10-19T09:30:00-04:00", ["end"] = "2026-10-19T09:45:00-04:00", icon = "users" },
           { title = "Design review", at = "2026-10-19T14:00:00-04:00", ["end"] = "2026-10-19T15:00:00-04:00", sub = "Room 4" },
+          { title = "Meeting", at = "2026-10-19T16:00:00-04:00", ["end"] = "2026-10-19T16:30:00-04:00", response = "pending" },
         },
       },
       ---@param ctx Ctx
@@ -102,6 +104,8 @@ return {
             ["end"] = e["end"] ~= nil and seconds(ctx, e["end"]) or nil,
             icon = type(e.icon) == "string" and e.icon or nil,
             sub = type(e.sub) == "string" and e.sub or nil,
+            -- An invite not answered yet; the agenda calls it out until it's answered.
+            response = e.response == "pending" and "pending" or nil,
           }
           if not over(ev, now) then events[#events + 1] = ev end
         end

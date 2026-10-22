@@ -132,8 +132,11 @@ Each event:
 | `end` | | end, in the same forms; lets the panel say "now · 20m left", then drop it |
 | `icon` | | a Lucide icon name |
 | `sub` | | one short line, e.g. a room |
+| `response` | | `"pending"` for an invite not answered yet (yes, no or maybe); leave it off once answered |
 
-Order doesn't matter. Push a whole day at once: the panel counts down to the next event, shows
+Order doesn't matter. Invites with `"response": "pending"` show under **New · respond** at the top
+(the bell rings when a new one arrives) and are marked in the timeline. In its last five minutes the next
+event counts down inside a ring. Push a whole day at once: the panel counts down to the next event, shows
 "now" while one is on, and rolls on as each ends. Events that are over are dropped (one with no `end`
 ten minutes after it starts).
 

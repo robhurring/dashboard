@@ -42,8 +42,11 @@ describe("ui.countdown", () => {
     expect(screen.getByText("Standup")).toBeInTheDocument();
     expect(screen.getByText("in 10m")).toBeInTheDocument();
     expect(screen.getByText("5:00 pm")).toBeInTheDocument();
-    act(() => { vi.advanceTimersByTime(9 * min + 30_000); });
-    expect(screen.getByText("in 30s")).toBeInTheDocument();
+    act(() => { vi.advanceTimersByTime(4 * min); });
+    expect(screen.getByText("in 6m")).toBeInTheDocument();
+    // The last five minutes are a ring timer.
+    act(() => { vi.advanceTimersByTime(5 * min + 30_000); });
+    expect(screen.getByText("0:30")).toBeInTheDocument();
   });
 
   test("takes unix seconds too; during it says now and how long is left, then ended", () => {
@@ -84,5 +87,25 @@ describe("ui.countdown", () => {
     unmount();
     draw({ at: "not a time", label: "y" });
     expect(screen.getByText("no time")).toBeInTheDocument();
+  });
+
+  test("inside the last 5 minutes it becomes a ring timer counting down to now", () => {
+    draw({ at: NOW / 1000 + 4 * 60 + 30, label: "Standup" });
+    const ring = document.querySelector("[data-ring]")!;
+    expect(ring).not.toBeNull();
+    expect(screen.getByText("4:30")).toBeInTheDocument();
+    // The ring's arc is what's left of the five minutes.
+    expect(Number(ring.getAttribute("data-left"))).toBeCloseTo(0.9, 2);
+    act(() => { vi.advanceTimersByTime(4.5 * 60_000 + 1000); });
+    expect(document.querySelector("[data-ring]")).toBeNull();
+    expect(screen.getByText(/^started \d+s ago$/)).toBeInTheDocument();
+  });
+
+  test("ring_at sets when the ring starts (0: never)", () => {
+    const { unmount } = draw({ at: NOW / 1000 + 8 * 60, label: "x", ring_at: 10 });
+    expect(document.querySelector("[data-ring]")).not.toBeNull();
+    unmount();
+    draw({ at: NOW / 1000 + 60, label: "y", ring_at: 0 });
+    expect(document.querySelector("[data-ring]")).toBeNull();
   });
 });
