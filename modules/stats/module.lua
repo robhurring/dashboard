@@ -29,6 +29,7 @@ return {
   title = "Stats",
   config = {
     layout = "fill",   -- "fill": tiles stretch to cover the panel, sized by the count; "flow": fixed tiles that wrap
+    align = "left",    -- "left": the number and its detail at the bottom left, under the label; "center": the number in the middle
   },
 
   hooks = {

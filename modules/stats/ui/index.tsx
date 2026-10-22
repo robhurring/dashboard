@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomProps } from "@dashboard/components/registry";
 import { Icon } from "@dashboard/widgets/icons";
 import "./stats.css";
@@ -53,7 +53,12 @@ const TILE_ASPECT = 1.25;
  * closest to TILE_ASPECT, with a penalty per empty cell. 6 in a tall half-screen panel is 2 × 3.
  */
 export function gridFor(count: number, width: number, height: number): { cols: number; rows: number } {
-  if (count <= 1 || width <= 0 || height <= 0) return { cols: 1, rows: 1 };
+  if (count <= 1) return { cols: 1, rows: 1 };
+  // Not measured yet: square-ish, until the panel's size is known.
+  if (width <= 0 || height <= 0) {
+    const cols = Math.ceil(Math.sqrt(count));
+    return { cols, rows: Math.ceil(count / cols) };
+  }
   let best = { cols: 1, rows: count, score: Infinity };
   for (let cols = 1; cols <= count; cols++) {
     const rows = Math.ceil(count / cols);
@@ -65,16 +70,21 @@ export function gridFor(count: number, width: number, height: number): { cols: n
   return { cols: best.cols, rows: best.rows };
 }
 
-/** The element's size, kept current. */
-function useSize<T extends HTMLElement>(): [React.RefObject<T | null>, { width: number; height: number }] {
-  const ref = useRef<T>(null);
+/**
+ * The element's size, kept current. A callback ref, so measuring starts whenever the element appears
+ * (the grid only renders once there are stats, after the waiting message).
+ */
+function useSize(): [(el: HTMLElement | null) => void, { width: number; height: number }] {
   const [size, setSize] = useState({ width: 0, height: 0 });
-  useEffect(() => {
-    const el = ref.current;
+  const observer = useRef<ResizeObserver | null>(null);
+  const ref = useCallback((el: HTMLElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
     if (!el || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => { const r = el.getBoundingClientRect(); setSize({ width: r.width, height: r.height }); });
-    ro.observe(el);
-    return () => ro.disconnect();
+    const measure = () => { const r = el.getBoundingClientRect(); setSize({ width: r.width, height: r.height }); };
+    observer.current = new ResizeObserver(measure);
+    observer.current.observe(el);
+    measure();
   }, []);
   return [ref, size];
 }
@@ -86,26 +96,32 @@ function useSize<T extends HTMLElement>(): [React.RefObject<T | null>, { width: 
 export function Stats({ state, config }: CustomProps) {
   const s = state as State | null;
   const motions = useMotion(s?.items ?? EMPTY);
-  const [ref, size] = useSize<HTMLUListElement>();
+  const [ref, size] = useSize();
   if (!s) return <p className="type-sub italic">Waiting for the first push</p>;
   if (s.items.length === 0) return <p className="type-sub italic">Nothing to report</p>;
   // fill: a grid sized to the count and the panel, no dead space. flow: fixed tiles that wrap (and scroll).
   const fill = config?.layout !== "flow";
+  // left: number and detail at the bottom left, under the label; center: the number in the middle.
+  const align = config?.align === "center" ? "center" : "left";
   const { cols, rows } = gridFor(s.items.length, size.width, size.height);
   return (
     <ul
       ref={ref}
       data-layout={fill ? "fill" : "flow"}
+      data-align={align}
       data-cols={fill ? cols : undefined}
       data-rows={fill ? rows : undefined}
       className={fill ? "grid h-full min-h-0 gap-[0.75em]" : "grid h-full min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(8em,1fr))] gap-[0.75em] scroll"}
       style={fill ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : undefined}
     >
-      {s.items.map((it) => {
+      {s.items.map((it, i) => {
+        // The last tile takes the last row's empty cells, so the grid has no hole.
+        const empty = fill ? cols * rows - s.items.length : 0;
+        const span = empty > 0 && i === s.items.length - 1 ? `span ${empty + 1}` : undefined;
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
         return (
-          <li key={idOf(it)} data-motion={motion} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
+          <li key={idOf(it)} data-motion={motion} style={span ? { gridColumn: span } : undefined} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
             <div className="flex items-center gap-[0.45em] text-ink-muted">
               {it.icon && (
                 <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
@@ -116,7 +132,7 @@ export function Stats({ state, config }: CustomProps) {
             </div>
             {fill ? (
               // Centered, as large as the tile allows: stats.css sizes it from the tile and the digit count.
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+              <div className={`flex min-h-0 flex-1 flex-col ${align === "center" ? "items-center justify-center" : "items-start justify-end"}`}>
                 <div
                   className={`stats-number font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
                   style={{ "--digits": Math.max(1.5, String(it.number).length) } as React.CSSProperties}

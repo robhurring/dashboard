@@ -77,6 +77,9 @@ describe("Stats panel", () => {
     // A wide, short panel lays the same six out in rows.
     expect(gridFor(6, 1200, 400)).toEqual({ cols: 3, rows: 2 });
     expect(gridFor(0, 600, 640)).toEqual({ cols: 1, rows: 1 });
+    // Before the panel has been measured: a square-ish grid, never one column of slivers.
+    expect(gridFor(12, 0, 0)).toEqual({ cols: 4, rows: 3 });
+    expect(gridFor(5, 0, 0)).toEqual({ cols: 3, rows: 2 });
   });
 
   test("layout: fill (the default) stretches a grid over the panel; flow keeps fixed tiles that wrap", () => {
@@ -86,5 +89,30 @@ describe("Stats panel", () => {
     unmount();
     const flow = render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { layout: "flow" })} />);
     expect(flow.container.querySelector("ul")).toHaveAttribute("data-layout", "flow");
+  });
+
+  test("stats arriving after the waiting message still get a full grid", () => {
+    const { rerender, container } = render(<Stats {...props(null)} />);
+    const items = Array.from({ length: 12 }, (_, i) => ({ label: `S${i}`, number: i }));
+    rerender(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    const ul = container.querySelector("ul")!;
+    expect(Number(ul.dataset.cols) * Number(ul.dataset.rows)).toBeGreaterThanOrEqual(12);
+  });
+
+  test("the last tile stretches over the empty cells of the last row", () => {
+    const items = Array.from({ length: 3 }, (_, i) => ({ label: `S${i}`, number: i }));
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    const tiles = screen.getAllByRole("listitem");
+    expect(tiles[2].style.gridColumn).toBe("span 2"); // 2 x 2 with one empty cell
+    expect(tiles[0].style.gridColumn).toBe("");
+  });
+
+  test("align: left (default) or center", () => {
+    const items = [{ label: "A", number: 1 }];
+    const { container, unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    expect(container.querySelector("ul")).toHaveAttribute("data-align", "left");
+    unmount();
+    const centered = render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { align: "center" })} />);
+    expect(centered.container.querySelector("ul")).toHaveAttribute("data-align", "center");
   });
 });
