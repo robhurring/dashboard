@@ -59,14 +59,15 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
   const fresh = useNewArrivals(live.filter((x) => x.e.response === "pending").map((x) => x.e));
   if (live.length === 0) return <p className="type-sub italic">{empty}</p>;
   // Back to back: while one meeting is on, the next (answered) one takes the top line for its last
-  // `timer_at` minutes, so its timer runs; the one that's on moves into the rows.
+  // `timer_at` minutes, so its timer runs.
   let top = 0;
   if (live[0].start <= now) {
     const soon = live.findIndex((x) => x.start > now && x.start - now <= timer_at * 60_000 && x.e.response !== "pending");
     if (soon > 0) top = soon;
   }
   const next = live[top];
-  const rest = live.filter((_, i) => i !== top).slice(0, Math.max(0, count - 1));
+  // Later holds only what hasn't started: when the next meeting swaps onto the top line, the one ending drops off.
+  const rest = live.filter((x, i) => i !== top && x.start > now).slice(0, Math.max(0, count - 1));
   return (
     <div data-agenda data-layout="rows" className="flex h-full min-h-0 flex-col gap-[1.1em]">
       {/* The next event, one full-width row; what comes after stacks under it. */}

@@ -89,7 +89,7 @@ describe("ui.agenda", () => {
     expect(container.querySelector("[data-later]")).toHaveClass("mt-auto");
   });
 
-  test("back to back: inside the next meeting's last 5 minutes, it takes the top line with its timer", () => {
+  test("back to back: inside the next meeting's last 5 minutes, it swaps onto the top line with its timer", () => {
     draw({ events: [
       { title: "Design review", at: t(-55), end: t(3) },
       { title: "1:1", at: t(3), end: t(30) },
@@ -97,12 +97,25 @@ describe("ui.agenda", () => {
     ] });
     const top = screen.getByText("1:1").closest("[data-style=countdown]")!;
     expect(top.querySelector("[data-bar]")).not.toBeNull();
-    // The meeting you're in moves into the rows, still saying what's left of it.
-    expect(screen.getByText("Design review").closest("[data-style=event]")).toHaveTextContent("3m remaining");
+    // The meeting that's ending swaps out: Later only holds what hasn't started.
+    expect(screen.queryByText("Design review")).toBeNull();
+    expect(screen.getByText("Planning").closest("[data-style=event]")).not.toBeNull();
   });
 
   test("back to back with an unanswered invite next: the meeting you're in keeps the top line", () => {
     draw({ events: [{ title: "Design review", at: t(-55), end: t(3) }, { title: "Sync", at: t(3), response: "pending" }] });
     expect(screen.getByText("Design review").closest("[data-style]")).toHaveAttribute("data-style", "countdown");
+  });
+
+  test("no event is ever in two places: the top line's event isn't also in Later", () => {
+    for (const offset of [-20, -3, 0, 2, 4, 6]) {
+      const { unmount } = draw({ events: [
+        { title: "A", at: t(offset - 30), end: t(offset) },
+        { title: "B", at: t(offset), end: t(offset + 30) },
+        { title: "C", at: t(offset + 30), end: t(offset + 60) },
+      ] });
+      for (const title of ["A", "B", "C"]) expect(screen.queryAllByText(title).length).toBeLessThanOrEqual(1);
+      unmount();
+    }
   });
 });
