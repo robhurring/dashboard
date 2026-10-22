@@ -1,4 +1,5 @@
 import type { CustomProps } from "@dashboard/components/registry";
+import { Agenda } from "@dashboard/widgets/Agenda";
 
 type Event = { title: string; start: string; end: string; all_day: boolean; calendar: string };
 type State = { from: string; days: number; events: Event[] };
@@ -42,7 +43,25 @@ function isPast(e: Event, now: Date): boolean {
   return new Date(e.end).getTime() < now.getTime();
 }
 
-export function Calendar({ state, config }: CustomProps) {
+/** `view`: "static" (default) is the days as columns; "live" is the up-next agenda over the timed events. */
+export function Calendar(props: CustomProps) {
+  return props.config?.view === "live" ? <LiveCalendar {...props} /> : <DayCalendar {...props} />;
+}
+
+/**
+ * The next event counting down on the top line (a timer over a draining bar in its last minutes, "20m
+ * remaining" while it's on), the next `count` after it as rows; rolls through the day by itself.
+ * All-day events are left out: they don't start or end at a time worth counting to.
+ */
+function LiveCalendar({ state, config }: CustomProps) {
+  const s = state as State | null;
+  if (!s) return null;
+  const events = s.events.filter((e) => !e.all_day).map((e) => ({ title: e.title, at: e.start, end: e.end }));
+  const count = typeof config?.count === "number" ? config.count : 4;
+  return <Agenda events={events} count={count} />;
+}
+
+function DayCalendar({ state, config }: CustomProps) {
   if (!state) return null;
   const s = state as State;
   const hidePast = config.past === "hide";

@@ -27,6 +27,8 @@ return {
   config = {
     days = 3,
     past = "dim",   -- "dim" fades events that have ended; "hide" drops them
+    view = "static", -- "static": the days as columns; "live": the next event counting down, the next `count` as rows
+    count = 4,       -- live view: events shown
     feeds = required,   -- feed names, comma-separated: "work" reads CALENDAR_WORK
   },
 

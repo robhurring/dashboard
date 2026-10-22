@@ -16,7 +16,7 @@ const state = {
     { title: "Late", start: "2026-10-16T20:00:00-04:00", end: "2026-10-16T21:00:00-04:00", all_day: false, calendar: "Work" },
   ],
 };
-const props = (): CustomProps => ({ state: state as unknown as CustomProps["state"], config: { days: 3 }, status: null, send: vi.fn(), title: "Calendar", density: "normal" });
+const props = (config: Record<string, unknown> = { days: 3 }): CustomProps => ({ state: state as unknown as CustomProps["state"], config: config as never, status: null, send: vi.fn(), title: "Calendar", density: "normal" });
 
 describe("Calendar panel", () => {
   test("one column per day, named Today, Tomorrow, then the weekday, events in time order with all-day first", () => {
@@ -60,5 +60,15 @@ describe("Calendar panel", () => {
     expect(container).toBeEmptyDOMElement();
     rerender(<Calendar {...props()} state={{ ...state, events: [] } as never} />);
     expect(screen.getAllByText("Nothing planned")).toHaveLength(3);
+  });
+
+  test("view = live: the next timed event counts down on the top line, the next `count` as rows; all-day ones left out", () => {
+    // Noon on the 15th: Standup (9:00) is over, so Late (the 16th, 8pm) is next, then Dentist.
+    render(<Calendar {...props({ days: 3, view: "live", count: 2 })} />);
+    expect(screen.getByText("Late").closest("[data-style=countdown]")).not.toBeNull();
+    expect(screen.getByText("Dentist").closest("[data-style=event]")).not.toBeNull();
+    expect(screen.queryByText("Trip")).toBeNull();
+    expect(screen.queryByText("Standup")).toBeNull();
+    expect(screen.queryByRole("group")).toBeNull(); // no day columns
   });
 });

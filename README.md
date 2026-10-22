@@ -115,7 +115,7 @@ whatever is sending to it (a cron job, n8n, an AI agent) can discover the contra
 
 | Module | Shows | Needs |
 |---|---|---|
-| `calendar` | the next few days from ICS feeds (Google Calendar's secret address works); `feeds="home"` picks which | `CALENDAR_<NAME>` per feed |
+| `calendar` | the next few days from ICS feeds (Google Calendar's secret address works), as day columns or, with `view="live"`, the next event counting down; `feeds="home"` picks which | `CALENDAR_<NAME>` per feed |
 | `weather` | now, hi/lo, sunrise/sunset and an hourly strip | `OPENWEATHERMAP_API_KEY` |
 | `stocks` | quotes and the day's change | `FINNHUB_API_KEY` |
 | `clock` | digital or analog, any time zone | nothing |
