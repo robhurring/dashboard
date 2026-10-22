@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatTime } from "./Clock";
+import { BellDot } from "lucide-react";
 import { Icon } from "./icons";
 import { Inline } from "./Inline";
 
@@ -22,10 +23,10 @@ type Props = {
   /** Minutes left when it turns yellow, then red. */
   warn_at?: number;
   bad_at?: number;
-  /** Minutes before the start when a countdown becomes a ring timer ("4:59" inside a draining ring); 0: never. */
-  ring_at?: number;
-  /** An event row's marker, e.g. "unanswered": a small accent dot (the word is for screen readers). */
-  badge?: string;
+  /** Minutes before the start when a countdown becomes a timer ("4:59") over a bar that drains to now; 0: never. */
+  timer_at?: number;
+  /** An invite not answered yet: an event row gets a bell and a tint, and stays in its place in the schedule. */
+  pending?: boolean;
   /** An event row that shows only the start time, for narrow columns. */
   compact?: boolean;
 };
@@ -85,7 +86,7 @@ export function useNow(): number {
  * Time until something: a meeting, a deploy, a train. Counts down on its own; says "now" (and what's
  * left, with an `end`) once it starts. Lua views use it as ui.countdown; stats tiles with `at` too.
  */
-export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, ring_at = 5, badge, compact = false }: Props) {
+export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, timer_at = 5, pending = false, compact = false }: Props) {
   const now = useNow();
   const start = instant(at);
   const finish = instant(end);
@@ -105,39 +106,33 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
 
   if (style === "event") {
     return (
-      <div data-style="event" data-over={over} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg bg-ink/5 px-[0.8em] py-[0.55em] ${over ? "opacity-40" : ""}`}>
+      <div data-style="event" data-over={over} data-pending={pending} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg px-[0.8em] py-[0.55em] ${pending ? "bg-accent/15" : "bg-ink/5"} ${over ? "opacity-40" : ""}`}>
         {when && <span className={`type-sub shrink-0 whitespace-nowrap tabular-nums ${compact ? "w-[4.6em]" : "w-[9.5em]"}`}>{when}</span>}
         <span className="type-label flex min-w-0 flex-1 items-center gap-[0.45em]">
-          {badge && <span title={badge} className="size-[0.5em] shrink-0 self-center rounded-full bg-accent"><span className="sr-only">{badge}</span></span>}
+          {pending && <span title="Not answered yet" className="flex shrink-0 self-center text-accent"><BellDot className="size-[1em]" aria-hidden /><span className="sr-only">unanswered</span></span>}
           <span className="truncate"><Inline text={label} /></span>
         </span>
         <span className={`type-sub shrink-0 font-semibold tabular-nums ${tone ? TONE[tone] : ""}`}>{status}</span>
       </div>
     );
   }
-  // The last few minutes: a timer inside a ring that drains to "now", like the iOS timer.
-  const ringing = style === "countdown" && ring_at > 0 && until > 0 && until <= ring_at * MIN;
-  if (ringing) {
-    const left = until / (ring_at * MIN);
-    const R = 44, C = 2 * Math.PI * R;
+  // The last few minutes: a timer over a bar that drains to "now".
+  const timing = style === "countdown" && timer_at > 0 && until > 0 && until <= timer_at * MIN;
+  if (timing) {
+    const left = until / (timer_at * MIN);
     return (
-      <div data-style="countdown" className="flex min-w-0 items-center gap-[1.2em]">
-        <div data-ring data-left={left.toFixed(3)} className="relative size-[7.5em] shrink-0">
-          <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
-            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="7" className="stroke-ink/10" />
-            <circle cx="50" cy="50" r={R} fill="none" strokeWidth="7" strokeLinecap="round" strokeDasharray={C} strokeDashoffset={C * (1 - left)} className={`transition-[stroke-dashoffset] duration-1000 ease-linear ${tone === "bad" ? "stroke-bad" : tone === "warn" ? "stroke-warn" : "stroke-accent"}`} />
-          </svg>
-          <span className={`absolute inset-0 flex items-center justify-center text-[1.9em] font-semibold tabular-nums ${tone ? TONE[tone] : ""}`}>{timerText(until)}</span>
+      <div data-style="countdown" className="flex min-w-0 flex-col">
+        {label && (
+          <div className="flex items-center gap-[0.45em] text-ink-muted">
+            {icon && <Icon name={icon} className={`size-[1.15em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
+            <span className="type-label truncate"><Inline text={label} /></span>
+          </div>
+        )}
+        <div className={`type-value mt-[0.4em] tabular-nums ${tone ? TONE[tone] : ""}`}>{timerText(until)}</div>
+        <div data-bar data-left={left.toFixed(3)} className="mt-[0.6em] h-[0.45em] w-full overflow-hidden rounded-full bg-ink/10">
+          <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${tone === "bad" ? "bg-bad" : tone === "warn" ? "bg-warn" : "bg-accent"}`} style={{ width: `${left * 100}%` }} />
         </div>
-        <div className="flex min-w-0 flex-col">
-          {label && (
-            <div className="flex items-center gap-[0.45em] text-ink-muted">
-              {icon && <Icon name={icon} className={`size-[1.15em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
-              <span className="type-label truncate"><Inline text={label} /></span>
-            </div>
-          )}
-          {(when || sub) && <div className="type-sub mt-[0.4em] truncate"><Inline text={[when, sub].filter(Boolean).join(" · ")} /></div>}
-        </div>
+        {(when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[when, sub].filter(Boolean).join(" · ")} /></div>}
       </div>
     );
   }

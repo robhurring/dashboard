@@ -43,22 +43,26 @@ describe("ui.agenda", () => {
     expect(screen.getByText("Nothing coming up")).toBeInTheDocument();
   });
 
-  test("invites not answered yet: a New strip at the top, and marked in the timeline", () => {
+  test("invites not answered yet stay in the schedule, in order, marked with a bell and a tint", () => {
     draw({ events: [
       { title: "Standup", at: t(10), end: t(25) },
       { title: "Planning", at: t(90), end: t(120), response: "pending" },
+      { title: "1:1", at: t(150) },
     ] });
-    const strip = screen.getByRole("region", { name: "New · respond" });
-    expect(strip).toHaveTextContent("Planning");
-    const row = screen.getAllByText("Planning").map((el) => el.closest("[data-style=event]")).find((r) => r && !strip.contains(r))!;
-    expect(row).toHaveTextContent("unanswered");
+    expect(screen.queryByRole("region", { name: /respond/i })).toBeNull();
+    const rows = screen.getAllByRole("listitem");
+    expect(rows.map((r) => r.textContent)).toEqual([expect.stringContaining("Planning"), expect.stringContaining("1:1")]);
+    const planning = rows[0].querySelector("[data-style=event]")!;
+    expect(planning).toHaveAttribute("data-pending", "true");
+    expect(planning).toHaveTextContent("unanswered");
+    expect(rows[1].querySelector("[data-style=event]")).not.toHaveAttribute("data-pending", "true");
   });
 
-  test("no strip when nothing is pending; the bell rings when a new invite arrives, not on first load", () => {
-    const events = [{ title: "Standup", at: t(10) }];
+  test("a new invite glows when it arrives, not on first load", () => {
+    const events = [{ title: "Standup", at: t(10) }, { title: "1:1", at: t(30) }];
     const { rerender } = render(<WidgetTree node={{ type: "agenda", props: { events }, children: [] }} send={vi.fn()} />);
-    expect(screen.queryByRole("region", { name: "New · respond" })).toBeNull();
     rerender(<WidgetTree node={{ type: "agenda", props: { events: [...events, { title: "Sync", at: t(60), response: "pending" }] }, children: [] }} send={vi.fn()} />);
-    expect(screen.getByRole("region", { name: "New · respond" })).toHaveAttribute("data-ringing", "true");
+    expect(screen.getByText("Sync").closest("li")).toHaveAttribute("data-new", "true");
+    expect(screen.getByText("1:1").closest("li")).toHaveAttribute("data-new", "false");
   });
 });

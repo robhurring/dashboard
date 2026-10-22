@@ -44,7 +44,7 @@ describe("ui.countdown", () => {
     expect(screen.getByText("5:00 pm")).toBeInTheDocument();
     act(() => { vi.advanceTimersByTime(4 * min); });
     expect(screen.getByText("in 6m")).toBeInTheDocument();
-    // The last five minutes are a ring timer.
+    // The last five minutes are a timer.
     act(() => { vi.advanceTimersByTime(5 * min + 30_000); });
     expect(screen.getByText("0:30")).toBeInTheDocument();
   });
@@ -89,23 +89,23 @@ describe("ui.countdown", () => {
     expect(screen.getByText("no time")).toBeInTheDocument();
   });
 
-  test("inside the last 5 minutes it becomes a ring timer counting down to now", () => {
+  test("inside the last 5 minutes it becomes a timer over a bar that drains to now", () => {
     draw({ at: NOW / 1000 + 4 * 60 + 30, label: "Standup" });
-    const ring = document.querySelector("[data-ring]")!;
-    expect(ring).not.toBeNull();
+    const bar = document.querySelector("[data-bar]")!;
+    expect(bar).not.toBeNull();
     expect(screen.getByText("4:30")).toBeInTheDocument();
-    // The ring's arc is what's left of the five minutes.
-    expect(Number(ring.getAttribute("data-left"))).toBeCloseTo(0.9, 2);
+    // The bar is what's left of the five minutes.
+    expect(Number(bar.getAttribute("data-left"))).toBeCloseTo(0.9, 2);
     act(() => { vi.advanceTimersByTime(4.5 * 60_000 + 1000); });
-    expect(document.querySelector("[data-ring]")).toBeNull();
+    expect(document.querySelector("[data-bar]")).toBeNull();
     expect(screen.getByText(/^started \d+s ago$/)).toBeInTheDocument();
   });
 
-  test("ring_at sets when the ring starts (0: never)", () => {
-    const { unmount } = draw({ at: NOW / 1000 + 8 * 60, label: "x", ring_at: 10 });
-    expect(document.querySelector("[data-ring]")).not.toBeNull();
+  test("timer_at sets when the timer starts (0: never)", () => {
+    const { unmount } = draw({ at: NOW / 1000 + 8 * 60, label: "x", timer_at: 10 });
+    expect(document.querySelector("[data-bar]")).not.toBeNull();
     unmount();
-    draw({ at: NOW / 1000 + 60, label: "y", ring_at: 0 });
-    expect(document.querySelector("[data-ring]")).toBeNull();
+    draw({ at: NOW / 1000 + 60, label: "y", timer_at: 0 });
+    expect(document.querySelector("[data-bar]")).toBeNull();
   });
 });
