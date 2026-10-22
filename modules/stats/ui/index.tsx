@@ -105,8 +105,10 @@ export function Stats({ state, config }: CustomProps) {
   // left: number and detail at the bottom left, under the label; center: the number in the middle.
   const align = config?.align === "center" ? "center" : "left";
   const { cols, rows } = gridFor(s.items.length, size.width, size.height);
-  // One number size across the panel: if any tile has a detail line, every tile leaves room for one.
-  const reserve = s.items.some((it) => it.sub) ? "4.9em" : "3.3em";
+  // One number size across the panel: every tile's number box is the same height (tiles without a detail
+  // line keep an empty one when any tile has one), and widths are sized for the widest number.
+  const anySub = s.items.some((it) => it.sub);
+  const digits = Math.max(1, ...s.items.map((it) => String(it.number).length));
   return (
     <ul
       ref={ref}
@@ -121,7 +123,7 @@ export function Stats({ state, config }: CustomProps) {
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
         return (
-          <li key={idOf(it)} data-motion={motion} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
+          <li key={idOf(it)} data-motion={motion} className={`${fill ? "" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
             <div className="flex items-center gap-[0.45em] text-ink-muted">
               {it.icon && (
                 <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
@@ -131,17 +133,24 @@ export function Stats({ state, config }: CustomProps) {
               <span className="type-label truncate"><Inline text={it.label} /></span>
             </div>
             {fill ? (
-              // Centered, as large as the tile allows: stats.css sizes it from the tile and the digit count.
-              <div className={`flex min-h-0 flex-1 flex-col ${align === "center" ? "items-center justify-center" : "items-start justify-end"}`}>
-                <div
-                  className={`stats-number font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
-                  // --reserve: the tile's height that isn't the number (padding, the label, the detail line).
-                  style={{ "--digits": Math.max(1.5, String(it.number).length), "--reserve": reserve } as React.CSSProperties}
-                >
-                  <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
+              <>
+                {/* The number's box is everything between the label and the detail line; the number fills
+                    it (container units, see stats.css), vertically centered. */}
+                <div className={`stats-box flex min-h-0 flex-1 items-center ${align === "center" ? "justify-center" : "justify-start"}`}>
+                  <div
+                    className={`stats-number font-semibold tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
+                    style={{ "--digits": digits } as React.CSSProperties}
+                  >
+                    <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
+                  </div>
                 </div>
-                {it.sub && <div className="type-sub mt-[0.4em] max-w-full truncate"><Inline text={it.sub} /></div>}
-              </div>
+                {it.sub ? (
+                  <div className={`type-sub max-w-full truncate ${align === "center" ? "text-center" : ""}`}><Inline text={it.sub} /></div>
+                ) : anySub ? (
+                  // Keeps this tile's number box the same height as the tiles that have a detail line.
+                  <div data-sub="placeholder" aria-hidden className="type-sub invisible">&nbsp;</div>
+                ) : null}
+              </>
             ) : (
               <>
                 <div className={`mt-auto text-[2.25em] font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : ""}`}>

@@ -36,10 +36,9 @@
   .stats-pop, .stats-ring-icon, .stats-ring-tile { animation: none; }
 }
 
-/* Each tile is a size container, so its number can grow with it: large in a 2 × 2, smaller in a 3 × 3. */
-.stats-tile { container-type: size; }
 /*
- * As big as the tile allows: limited by the height left after the label and detail line (--reserve),
- * and by its width over the number of digits. Small tiles shrink it rather than push the detail out.
+ * The number fills its box (the space between the label and the detail line): as tall as the box, or as
+ * wide as it allows for the panel's widest number, whichever is smaller. Every tile's box is the same.
  */
-.stats-number { font-size: clamp(1.25em, min(calc((100cqh - var(--reserve)) * 0.92), calc(85cqw / (var(--digits) * 0.62))), 14em); }
+.stats-box { container-type: size; }
+.stats-number { font-size: min(92cqh, calc(96cqw / (var(--digits) * 0.6))); line-height: 1; }

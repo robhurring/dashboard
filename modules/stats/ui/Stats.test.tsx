@@ -105,15 +105,22 @@ describe("Stats panel", () => {
     expect(screen.getAllByRole("listitem").every((t) => t.style.gridColumn === "")).toBe(true);
   });
 
-  test("numbers leave room for the label and detail line, the same in every tile so they match", () => {
-    const reserves = (items: unknown[]) => {
-      const { unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
-      const r = screen.getAllByRole("listitem").map((t) => t.querySelector<HTMLElement>(".stats-number")!.style.getPropertyValue("--reserve"));
-      unmount();
-      return r;
-    };
-    expect(reserves([{ label: "A", number: 1, sub: "detail" }, { label: "B", number: 2 }])).toEqual(["4.9em", "4.9em"]);
-    expect(reserves([{ label: "A", number: 1 }, { label: "B", number: 2 }])).toEqual(["3.3em", "3.3em"]);
+  test("every number is the same size: the same box in every tile, sized for the widest number", () => {
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items: [
+      { label: "A", number: 8, sub: "detail" },
+      { label: "B", number: 1284 },
+    ] })} />);
+    const tiles = screen.getAllByRole("listitem");
+    // Tiles without a detail keep an empty, invisible line, so the number boxes match in height.
+    expect(tiles[1].querySelector("[data-sub=placeholder]")).not.toBeNull();
+    expect(tiles[0].querySelector("[data-sub=placeholder]")).toBeNull();
+    const digits = tiles.map((t) => t.querySelector<HTMLElement>(".stats-number")!.style.getPropertyValue("--digits"));
+    expect(digits).toEqual(["4", "4"]);
+  });
+
+  test("with no details anywhere, no placeholder lines", () => {
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items: [{ label: "A", number: 1 }, { label: "B", number: 2 }] })} />);
+    expect(document.querySelector("[data-sub=placeholder]")).toBeNull();
   });
 
   test("align: left (default) or center", () => {
