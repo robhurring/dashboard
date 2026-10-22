@@ -105,6 +105,8 @@ export function Stats({ state, config }: CustomProps) {
   // left: number and detail at the bottom left, under the label; center: the number in the middle.
   const align = config?.align === "center" ? "center" : "left";
   const { cols, rows } = gridFor(s.items.length, size.width, size.height);
+  // One number size across the panel: if any tile has a detail line, every tile leaves room for one.
+  const reserve = s.items.some((it) => it.sub) ? "4.9em" : "3.3em";
   return (
     <ul
       ref={ref}
@@ -115,15 +117,11 @@ export function Stats({ state, config }: CustomProps) {
       className={fill ? "grid h-full min-h-0 gap-[0.75em]" : "grid h-full min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(8em,1fr))] gap-[0.75em] scroll"}
       style={fill ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : undefined}
     >
-      {s.items.map((it, i) => {
-        // In a two-column grid the last tile takes the last row's empty cell (a wide tile reads as
-        // intended there); in wider grids it keeps the others' size, so the 13th looks like the 12th.
-        const empty = fill && cols <= 2 ? cols * rows - s.items.length : 0;
-        const span = empty > 0 && i === s.items.length - 1 ? `span ${empty + 1}` : undefined;
+      {s.items.map((it) => {
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
         return (
-          <li key={idOf(it)} data-motion={motion} style={span ? { gridColumn: span } : undefined} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
+          <li key={idOf(it)} data-motion={motion} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
             <div className="flex items-center gap-[0.45em] text-ink-muted">
               {it.icon && (
                 <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
@@ -137,7 +135,8 @@ export function Stats({ state, config }: CustomProps) {
               <div className={`flex min-h-0 flex-1 flex-col ${align === "center" ? "items-center justify-center" : "items-start justify-end"}`}>
                 <div
                   className={`stats-number font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
-                  style={{ "--digits": Math.max(1.5, String(it.number).length) } as React.CSSProperties}
+                  // --reserve: the tile's height that isn't the number (padding, the label, the detail line).
+                  style={{ "--digits": Math.max(1.5, String(it.number).length), "--reserve": reserve } as React.CSSProperties}
                 >
                   <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
                 </div>

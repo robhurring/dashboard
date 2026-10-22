@@ -99,12 +99,21 @@ describe("Stats panel", () => {
     expect(Number(ul.dataset.cols) * Number(ul.dataset.rows)).toBeGreaterThanOrEqual(12);
   });
 
-  test("the last tile stretches over the empty cells of the last row", () => {
+  test("every tile is the same size: with 3 in a 2 x 2, the third doesn't stretch", () => {
     const items = Array.from({ length: 3 }, (_, i) => ({ label: `S${i}`, number: i }));
     render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
-    const tiles = screen.getAllByRole("listitem");
-    expect(tiles[2].style.gridColumn).toBe("span 2"); // 2 x 2 with one empty cell
-    expect(tiles[0].style.gridColumn).toBe("");
+    expect(screen.getAllByRole("listitem").every((t) => t.style.gridColumn === "")).toBe(true);
+  });
+
+  test("numbers leave room for the label and detail line, the same in every tile so they match", () => {
+    const reserves = (items: unknown[]) => {
+      const { unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+      const r = screen.getAllByRole("listitem").map((t) => t.querySelector<HTMLElement>(".stats-number")!.style.getPropertyValue("--reserve"));
+      unmount();
+      return r;
+    };
+    expect(reserves([{ label: "A", number: 1, sub: "detail" }, { label: "B", number: 2 }])).toEqual(["4.9em", "4.9em"]);
+    expect(reserves([{ label: "A", number: 1 }, { label: "B", number: 2 }])).toEqual(["3.3em", "3.3em"]);
   });
 
   test("align: left (default) or center", () => {
