@@ -93,10 +93,11 @@ describe("Stats panel", () => {
 
   test("stats arriving after the waiting message still get a full grid", () => {
     const { rerender, container } = render(<Stats {...props(null)} />);
-    const items = Array.from({ length: 12 }, (_, i) => ({ label: `S${i}`, number: i }));
+    const items = Array.from({ length: 9 }, (_, i) => ({ label: `S${i}`, number: i }));
     rerender(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
     const ul = container.querySelector("ul")!;
-    expect(Number(ul.dataset.cols) * Number(ul.dataset.rows)).toBeGreaterThanOrEqual(12);
+    expect(Number(ul.dataset.cols) * Number(ul.dataset.rows)).toBeGreaterThanOrEqual(9);
+    expect(Number(ul.dataset.cols)).toBeGreaterThan(1);
   });
 
   test("every tile is the same size: with 3 in a 2 x 2, the third doesn't stretch", () => {
@@ -147,5 +148,15 @@ describe("Stats panel", () => {
     render(<Stats {...props({ pushed_at: 1_800_000_000, items: [{ label: "**VIP**", number: 8, sub: "from `#exec`" }] })} />);
     expect(screen.getByText("VIP").tagName).toBe("STRONG");
     expect(screen.getByText("#exec").tagName).toBe("CODE");
+  });
+
+  test("shows at most `max` tiles (9 by default), the first by order", () => {
+    const items = Array.from({ length: 12 }, (_, i) => ({ label: `S${i}`, number: i }));
+    const { unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(9);
+    expect(screen.queryByText("S9")).toBeNull();
+    unmount();
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { max: 4 })} />);
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
   });
 });

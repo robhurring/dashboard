@@ -100,15 +100,18 @@ export function Stats({ state, config }: CustomProps) {
   const [ref, size] = useSize();
   if (!s) return <p className="type-sub italic">Waiting for the first push</p>;
   if (s.items.length === 0) return <p className="type-sub italic">Nothing to report</p>;
+  // At most `max` tiles (9 by default: past that they get too small to read across a room), first by order.
+  const max = typeof config?.max === "number" && config.max > 0 ? config.max : 9;
+  const items = s.items.slice(0, max);
   // fill: a grid sized to the count and the panel, no dead space. flow: fixed tiles that wrap (and scroll).
   const fill = config?.layout !== "flow";
   // left: number and detail at the bottom left, under the label; center: the number in the middle.
   const align = config?.align === "center" ? "center" : "left";
-  const { cols, rows } = gridFor(s.items.length, size.width, size.height);
+  const { cols, rows } = gridFor(items.length, size.width, size.height);
   // One number size across the panel: every tile's number box is the same, each leaves room for a detail
   // line when any tile has one, and widths are sized for the widest number.
-  const anySub = s.items.some((it) => it.sub);
-  const digits = Math.max(1, ...s.items.map((it) => String(it.number).length));
+  const anySub = items.some((it) => it.sub);
+  const digits = Math.max(1, ...items.map((it) => String(it.number).length));
   return (
     <ul
       ref={ref}
@@ -119,7 +122,7 @@ export function Stats({ state, config }: CustomProps) {
       className={fill ? "grid h-full min-h-0 gap-[0.75em]" : "grid h-full min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(8em,1fr))] gap-[0.75em] scroll"}
       style={fill ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : undefined}
     >
-      {s.items.map((it) => {
+      {items.map((it) => {
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
         return (

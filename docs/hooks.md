@@ -104,7 +104,8 @@ Every push names a `source` (default `"default"`): who is sending, such as `slac
 | `ring` | | ring the bell when the number goes up (`tone: "bad"` always does) |
 
 The grid fills the panel: its columns and rows follow the number of tiles and the panel's shape, and
-each number grows with its tile. A number that goes up pops.
+each number grows with its tile. A panel shows at most 9 tiles (the first by `order`; a slot's `max`
+changes it). A number that goes up pops.
 
 Labels, `sub` lines and event titles take light markdown: `**bold**`, `*italic*`, `__underline__`,
 `~~strike~~` and `` `code` ``. Anything else shows as typed.
