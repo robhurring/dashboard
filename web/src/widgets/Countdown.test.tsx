@@ -54,7 +54,7 @@ describe("ui.countdown", () => {
     draw({ at, end: at + 30 * 60, label: "1:1" });
     // Large, just "now"; what's left goes on the line under it.
     expect(screen.getByText("now")).toHaveClass("type-value");
-    expect(screen.getByText(/^25m left/)).toBeInTheDocument();
+    expect(screen.getByText("25m remaining")).toBeInTheDocument(); // just what's left, no clock
     act(() => { vi.advanceTimersByTime(26 * min); });
     expect(screen.getByText("ended")).toBeInTheDocument();
   });
@@ -71,7 +71,7 @@ describe("ui.countdown", () => {
 
   test("event style keeps it on one line while it's on", () => {
     draw({ at: NOW / 1000 - 300, end: NOW / 1000 + 1500, label: "1:1", style: "event" });
-    expect(screen.getByText("1:1").closest("[data-style=event]")).toHaveTextContent("now · 25m left");
+    expect(screen.getByText("1:1").closest("[data-style=event]")).toHaveTextContent("25m remaining");
   });
 
   test("event style: a calendar-like row with the time range, the title and how soon", () => {

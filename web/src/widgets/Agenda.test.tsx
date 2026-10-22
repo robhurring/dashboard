@@ -79,6 +79,7 @@ describe("ui.agenda", () => {
     expect(top).toHaveTextContent("in 3m"); // relative, even inside the last five minutes
     expect(top).not.toHaveTextContent("2:59"); // never the timer
     expect(top).toHaveTextContent("4:53 pm"); // its start time, in the details line
+    expect(top).not.toHaveTextContent("not answered"); // the tint and the bell say it
     const bar = top.querySelector("[data-bar]")!;
     expect(bar).toHaveAttribute("data-disabled", "true");
   });
@@ -97,7 +98,7 @@ describe("ui.agenda", () => {
     const top = screen.getByText("1:1").closest("[data-style=countdown]")!;
     expect(top.querySelector("[data-bar]")).not.toBeNull();
     // The meeting you're in moves into the rows, still saying what's left of it.
-    expect(screen.getByText("Design review").closest("[data-style=event]")).toHaveTextContent("now · 3m left");
+    expect(screen.getByText("Design review").closest("[data-style=event]")).toHaveTextContent("3m remaining");
   });
 
   test("back to back with an unanswered invite next: the meeting you're in keeps the top line", () => {

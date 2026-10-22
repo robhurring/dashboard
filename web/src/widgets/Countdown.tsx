@@ -7,7 +7,7 @@ import { Inline } from "./Inline";
 type Props = {
   /** When it starts: an ISO time ("2026-10-19T17:00:00-04:00") or unix seconds. */
   at?: string | number;
-  /** When it ends, same forms; lets it say "now · 20m left", then "ended". */
+  /** When it ends, same forms; lets it say "20m remaining", then "ended". */
   end?: string | number;
   label?: string;
   sub?: string;
@@ -95,10 +95,10 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   if (start === null) return <p className="type-sub italic">no time</p>;
   const until = start - now;
   const on = until <= 0 && finish !== null && now < finish;
-  const left = on ? `${span(finish! - now, { seconds, round: "up" })} left` : null;
+  const left = on ? `${span(finish! - now, { seconds, round: "up" })} remaining` : null;
   const status =
     until > 0 ? (style === "timer" ? timerText(until) : relativeText(until, { seconds })) :
-    finish !== null && now < finish ? `now · ${span(finish - now, { seconds, round: "up" })} left` :
+    finish !== null && now < finish ? `${span(finish - now, { seconds, round: "up" })} remaining` :
     finish !== null ? "ended" :
     `started ${span(-until, { seconds, round: "down" })} ago`;
   const over = finish !== null ? now >= finish : false;
@@ -141,7 +141,7 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
           </div>
         )}
         {(pending || left || when || sub) && (
-          <div className="type-sub mt-[0.5em] truncate"><Inline text={[pending ? "not answered" : left, when, sub].filter(Boolean).join(" · ")} /></div>
+          <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, left ? null : when, sub].filter(Boolean).join(" · ")} /></div>
         )}
       </div>
     );
@@ -174,7 +174,7 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
       )}
       {/* While it's on: large "now", with what's left on the line below. */}
       <div className={`type-value mt-[0.4em] tabular-nums ${tone ? TONE[tone] : ""}`}>{on ? "now" : status}</div>
-      {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, when, sub].filter(Boolean).join(" · ")} /></div>}
+      {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, left ? null : when, sub].filter(Boolean).join(" · ")} /></div>}
     </div>
   );
 }
