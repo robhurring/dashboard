@@ -114,11 +114,25 @@ export function Stats({ state, config }: CustomProps) {
               )}
               <span className="type-label truncate">{it.label}</span>
             </div>
-            {/* The number sits low in the tile and grows with it (container units, see stats.css). */}
-            <div className={`${fill ? "stats-number" : "text-[2.25em]"} mt-auto font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : ""}`}>
-              <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
-            </div>
-            {it.sub && <div className="type-sub mt-[0.3em] truncate">{it.sub}</div>}
+            {fill ? (
+              // Centered, as large as the tile allows: stats.css sizes it from the tile and the digit count.
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center">
+                <div
+                  className={`stats-number font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : it.number === 0 ? "text-ink-muted" : ""}`}
+                  style={{ "--digits": Math.max(1.5, String(it.number).length) } as React.CSSProperties}
+                >
+                  <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
+                </div>
+                {it.sub && <div className="type-sub mt-[0.4em] max-w-full truncate">{it.sub}</div>}
+              </div>
+            ) : (
+              <>
+                <div className={`mt-auto text-[2.25em] font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : ""}`}>
+                  <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
+                </div>
+                {it.sub && <div className="type-sub mt-[0.3em] truncate">{it.sub}</div>}
+              </>
+            )}
           </li>
         );
       })}

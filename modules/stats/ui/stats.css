@@ -38,4 +38,5 @@
 
 /* Each tile is a size container, so its number can grow with it: large in a 2 × 2, smaller in a 3 × 3. */
 .stats-tile { container-type: size; }
-.stats-number { font-size: clamp(2.25em, min(42cqh, 30cqw), 8em); }
+/* As big as the tile allows: limited by its height, and by its width over the number of digits. */
+.stats-number { font-size: clamp(2.25em, min(48cqh, calc(78cqw / (var(--digits) * 0.62))), 12em); }

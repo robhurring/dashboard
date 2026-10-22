@@ -7,7 +7,14 @@ export PATH="$HOME/.cargo/bin:$PATH"
 usage() { echo "usage: bin/dev    run Redis, the Rust server (port 4000) and Vite (port 5173) with live reload and both logs"; }
 [[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && { usage; exit 0; }
 
-docker compose up -d redis
+# Redis: skip Docker when something already answers on the dev port (and so a wedged Docker Desktop
+# can't hang startup); otherwise start the compose service, giving up after a minute.
+if nc -z -w 2 127.0.0.1 6380 2>/dev/null; then
+  echo "redis: already up on 6380"
+elif ! $(command -v timeout >/dev/null && echo "timeout 60") docker compose up -d redis; then
+  echo "bin/dev: couldn't start Redis with Docker (is Docker Desktop running and responsive?)" >&2
+  exit 1
+fi
 [[ -f .env ]] || cp .env.example .env
 # The repo's .env wins over anything already exported in your shell (a key in ~/.zshrc, say): load it
 # here, before the process runner, which would otherwise only fill in what the shell hasn't set.
