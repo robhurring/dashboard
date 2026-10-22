@@ -31,6 +31,8 @@ type Props = {
   compact?: boolean;
   /** One row: the label on the left and the time on the right (the bar and details under them). */
   inline?: boolean;
+  /** An event row's time as a short range ("7–8pm"). */
+  short?: boolean;
 };
 
 const MIN = 60_000;
@@ -67,6 +69,15 @@ export function countdownTone(ms: number, warn: number, bad: number): "warn" | "
   return undefined;
 }
 
+/** A short clock range: "7–8pm", "7:30–8pm", "11am–12:30pm"; just the start ("9am") without an end. */
+export function shortRange(start: number, end: number | null, tz?: string): string {
+  const part = (ms: number) => ({ hm: formatTime(new Date(ms), tz, "h:mm").replace(/:00$/, ""), ap: formatTime(new Date(ms), tz, "a") });
+  const a = part(start);
+  if (end === null) return `${a.hm}${a.ap}`;
+  const b = part(end);
+  return a.ap === b.ap ? `${a.hm}–${b.hm}${b.ap}` : `${a.hm}${a.ap}–${b.hm}${b.ap}`;
+}
+
 /** Milliseconds from an ISO time or unix seconds; null if it's neither. */
 export function instant(t: string | number | undefined): number | null {
   if (t === undefined || t === null || t === "") return null;
@@ -88,7 +99,7 @@ export function useNow(): number {
  * Time until something: a meeting, a deploy, a train. Counts down on its own; says "now" (and what's
  * left, with an `end`) once it starts. Lua views use it as ui.countdown; stats tiles with `at` too.
  */
-export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, timer_at = 5, pending = false, compact = false, inline = false }: Props) {
+export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, timer_at = 5, pending = false, compact = false, inline = false, short = false }: Props) {
   const now = useNow();
   const start = instant(at);
   const finish = instant(end);
@@ -104,12 +115,12 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   const over = finish !== null ? now >= finish : false;
   const tone = over ? undefined : countdownTone(until, warn_at, bad_at);
   const clock = (ms: number) => formatTime(new Date(ms), tz, "h:mm a");
-  const when = time ? (finish !== null && style === "event" && !compact ? `${clock(start)} – ${clock(finish)}` : clock(start)) : null;
+  const when = !time ? null : short ? shortRange(start, finish, tz) : finish !== null && style === "event" && !compact ? `${clock(start)} – ${clock(finish)}` : clock(start);
 
   if (style === "event") {
     return (
       <div data-style="event" data-over={over} data-pending={pending} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg px-[0.8em] py-[0.55em] ${pending ? "bg-accent/15" : "bg-ink/5"} ${over ? "opacity-40" : ""}`}>
-        {when && <span className={`type-sub shrink-0 whitespace-nowrap tabular-nums ${compact ? "w-[4.6em]" : "w-[10.5em]"}`}>{when}</span>}
+        {when && <span className={`type-sub shrink-0 whitespace-nowrap tabular-nums ${compact ? "w-[4.6em]" : short ? "w-[7.5em]" : "w-[10.5em]"}`}>{when}</span>}
         <span className="type-label flex min-w-0 flex-1 items-center gap-[0.45em]">
           {pending && <span title="Not answered yet" className="flex shrink-0 self-center text-accent"><BellDot className="size-[1em]" aria-hidden /><span className="sr-only">unanswered</span></span>}
           <span className="truncate"><Inline text={label} /></span>

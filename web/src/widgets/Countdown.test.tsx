@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act, render, screen } from "@testing-library/react";
 import { WidgetTree } from "./WidgetTree";
 import type { WidgetNode } from "../data/reduce";
-import { countdownTone, relativeText, timerText } from "./Countdown";
+import { countdownTone, relativeText, shortRange, timerText } from "./Countdown";
 
 const NOW = Date.UTC(2026, 9, 19, 20, 50, 0); // 4:50 pm in New York
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(NOW); });
@@ -107,5 +107,13 @@ describe("ui.countdown", () => {
     unmount();
     draw({ at: NOW / 1000 + 60, label: "y", timer_at: 0 });
     expect(document.querySelector("[data-bar]")).toBeNull();
+  });
+
+  test("short ranges: no :00, one am/pm when both share it", () => {
+    const ny = (h: number, m = 0) => Date.UTC(2026, 9, 19, h + 4, m); // New York is UTC-4 in October
+    expect(shortRange(ny(19), ny(20), "America/New_York")).toBe("7–8pm");
+    expect(shortRange(ny(19, 30), ny(20), "America/New_York")).toBe("7:30–8pm");
+    expect(shortRange(ny(11), ny(12, 30), "America/New_York")).toBe("11am–12:30pm");
+    expect(shortRange(ny(9), null, "America/New_York")).toBe("9am");
   });
 });

@@ -20,7 +20,8 @@ type Props = {
 const LINGER_MS = 10 * 60_000;
 
 /**
- * What's next, from a list of events, in relative time only ("in 12m", "20m remaining"; no clock times): the next one (or the one on now) counting down large, the few
+ * What's next, from a list of events (the top line in relative time only, "in 12m" or "20m remaining";
+ * Later rows with a short clock range, "7–8pm", and how soon): the next one (or the one on now) counting down large, the few
  * after it as calendar rows. Rolls on by itself as each ends, so a whole day can be handed over at once.
  */
 const keyOf = (e: Event) => `${e.title}@${e.at}`;
@@ -45,7 +46,8 @@ function useNewArrivals(pending: Event[]): Set<string> {
 }
 
 /**
- * What's next, from a list of events, in relative time only ("in 12m", "20m remaining"; no clock times): the next one counting down large (a timer over a draining bar in
+ * What's next, from a list of events (the top line in relative time only, "in 12m" or "20m remaining";
+ * Later rows with a short clock range, "7–8pm", and how soon): the next one counting down large (a timer over a draining bar in
  * its last minutes), the few after it as calendar rows beside it. Invites not answered yet stay in their
  * place, with a bell and a tint, and glow when they arrive. Rolls on by itself as each ends, so a whole
  * day can be handed over at once.
@@ -81,7 +83,7 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
               const isNew = fresh.has(keyOf(e));
               return (
                 <li key={keyOf(e)} data-new={isNew} className={isNew ? "rounded-lg animate-[attention_1.1s_ease-in-out_2]" : ""}>
-                  <Countdown style="event" time={false} at={e.at} end={e.end} label={e.title} tz={tz} pending={e.response === "pending"} />
+                  <Countdown style="event" short at={e.at} end={e.end} label={e.title} tz={tz} pending={e.response === "pending"} />
                 </li>
               );
             })}

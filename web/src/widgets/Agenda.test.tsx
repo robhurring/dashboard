@@ -119,7 +119,7 @@ describe("ui.agenda", () => {
     }
   });
 
-  test("just the relative bits: no clock times anywhere, only how soon and what's left", () => {
+  test("the top line is relative only; Later rows have a short clock range and how soon", () => {
     draw({ events: [
       { title: "Standup", at: t(20), end: t(35), sub: "Zoom" },
       { title: "Design review", at: t(90), end: t(150) },
@@ -127,8 +127,10 @@ describe("ui.agenda", () => {
     const top = screen.getByText("Standup").closest("[data-style=countdown]")!;
     expect(top).toHaveTextContent("in 20m");
     expect(top).toHaveTextContent("Zoom");
+    expect(top).not.toHaveTextContent(/\d\s?[ap]m/); // the top line is relative only
+    // Later rows: a short clock range, and how soon.
     const row = screen.getByText("Design review").closest("[data-style=event]")!;
+    expect(row).toHaveTextContent("6:20–7:20pm");
     expect(row).toHaveTextContent("in 1h 30m");
-    for (const el of [top, row]) expect(el).not.toHaveTextContent(/\d:\d\d\s?[ap]m/);
   });
 });
