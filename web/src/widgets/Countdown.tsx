@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { formatTime } from "./Clock";
 import { Icon } from "./icons";
+import { Inline } from "./Inline";
 
 type Props = {
   /** When it starts: an ISO time ("2026-10-19T17:00:00-04:00") or unix seconds. */
@@ -100,7 +101,7 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
     return (
       <div data-style="event" data-over={over} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg bg-ink/5 px-[0.8em] py-[0.55em] ${over ? "opacity-40" : ""}`}>
         {when && <span className="type-sub w-[9.5em] shrink-0 whitespace-nowrap tabular-nums">{when}</span>}
-        <span className="type-label min-w-0 flex-1 truncate">{label}</span>
+        <span className="type-label min-w-0 flex-1 truncate"><Inline text={label} /></span>
         <span className={`type-sub shrink-0 font-semibold tabular-nums ${tone ? TONE[tone] : ""}`}>{status}</span>
       </div>
     );
@@ -110,12 +111,12 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
       {label && (
         <div className="flex items-center gap-[0.45em] text-ink-muted">
           {icon && <Icon name={icon} className={`size-[1.15em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
-          <span className="type-label truncate">{label}</span>
+          <span className="type-label truncate"><Inline text={label} /></span>
         </div>
       )}
       {/* While it's on: large "now", with what's left on the line below. */}
       <div className={`type-value mt-[0.4em] tabular-nums ${tone ? TONE[tone] : ""}`}>{on ? "now" : status}</div>
-      {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate">{[left, when, sub].filter(Boolean).join(" · ")}</div>}
+      {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, when, sub].filter(Boolean).join(" · ")} /></div>}
     </div>
   );
 }

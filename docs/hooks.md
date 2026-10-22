@@ -103,7 +103,11 @@ Every push names a `source` (default `"default"`): who is sending, such as `slac
 | `order` | | sort key, lower first (default 1000); then by label |
 | `ring` | | ring the bell when the number goes up (`tone: "bad"` always does) |
 
-Tiles are a grid: about nine fit a half-width panel on a 1280×720 screen. A number that goes up pops.
+The grid fills the panel: its columns and rows follow the number of tiles and the panel's shape, and
+each number grows with its tile. A number that goes up pops.
+
+Labels, `sub` lines and event titles take light markdown: `**bold**`, `*italic*`, `__underline__`,
+`~~strike~~` and `` `code` ``. Anything else shows as typed.
 
 ### `upcoming`: a schedule
 

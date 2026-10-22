@@ -115,4 +115,20 @@ describe("Stats panel", () => {
     const centered = render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { align: "center" })} />);
     expect(centered.container.querySelector("ul")).toHaveAttribute("data-align", "center");
   });
+
+  test("in grids of three or more columns, a lone last tile keeps the others' size", () => {
+    vi.stubGlobal("ResizeObserver", class { observe() {} disconnect() {} });
+    const items = Array.from({ length: 13 }, (_, i) => ({ label: `S${i}`, number: i }));
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    const tiles = screen.getAllByRole("listitem");
+    expect(Number(tiles[0].closest("ul")!.dataset.cols)).toBeGreaterThanOrEqual(3);
+    expect(tiles.every((t) => t.style.gridColumn === "")).toBe(true);
+    vi.unstubAllGlobals();
+  });
+
+  test("labels and details take light markdown", () => {
+    render(<Stats {...props({ pushed_at: 1_800_000_000, items: [{ label: "**VIP**", number: 8, sub: "from `#exec`" }] })} />);
+    expect(screen.getByText("VIP").tagName).toBe("STRONG");
+    expect(screen.getByText("#exec").tagName).toBe("CODE");
+  });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CustomProps } from "@dashboard/components/registry";
 import { Icon } from "@dashboard/widgets/icons";
+import { Inline } from "@dashboard/widgets/Inline";
 import "./stats.css";
 
 type Item = { source?: string; label: string; number: number; tone?: "accent" | "good" | "warn" | "bad"; icon?: string; sub?: string; ring?: boolean };
@@ -115,8 +116,9 @@ export function Stats({ state, config }: CustomProps) {
       style={fill ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : undefined}
     >
       {s.items.map((it, i) => {
-        // The last tile takes the last row's empty cells, so the grid has no hole.
-        const empty = fill ? cols * rows - s.items.length : 0;
+        // In a two-column grid the last tile takes the last row's empty cell (a wide tile reads as
+        // intended there); in wider grids it keeps the others' size, so the 13th looks like the 12th.
+        const empty = fill && cols <= 2 ? cols * rows - s.items.length : 0;
         const span = empty > 0 && i === s.items.length - 1 ? `span ${empty + 1}` : undefined;
         const m = motions[idOf(it)];
         const motion: Motion = m?.motion ?? "none";
@@ -128,7 +130,7 @@ export function Stats({ state, config }: CustomProps) {
                   <Icon name={it.icon} className={`size-[1.15em] shrink-0 ${it.tone ? TONE[it.tone] : "text-accent"}`} />
                 </span>
               )}
-              <span className="type-label truncate">{it.label}</span>
+              <span className="type-label truncate"><Inline text={it.label} /></span>
             </div>
             {fill ? (
               // Centered, as large as the tile allows: stats.css sizes it from the tile and the digit count.
@@ -139,14 +141,14 @@ export function Stats({ state, config }: CustomProps) {
                 >
                   <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
                 </div>
-                {it.sub && <div className="type-sub mt-[0.4em] max-w-full truncate">{it.sub}</div>}
+                {it.sub && <div className="type-sub mt-[0.4em] max-w-full truncate"><Inline text={it.sub} /></div>}
               </div>
             ) : (
               <>
                 <div className={`mt-auto text-[2.25em] font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : ""}`}>
                   <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
                 </div>
-                {it.sub && <div className="type-sub mt-[0.3em] truncate">{it.sub}</div>}
+                {it.sub && <div className="type-sub mt-[0.3em] truncate"><Inline text={it.sub} /></div>}
               </>
             )}
           </li>

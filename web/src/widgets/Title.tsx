@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Icon } from "./icons";
+import { Inline } from "./Inline";
 
 type Props = {
   text?: string;
@@ -30,11 +31,11 @@ export function Title({ text = "", sub, icon, align = "left", details = "below",
   const heading = (
     <h2 className={`flex min-w-0 items-center gap-[0.4em] leading-tight tracking-tight ${SIZE[size]}`}>
       {icon && (caption ? <Icon name={icon} className="size-[1.15em] shrink-0 text-accent" /> : <Icon name={icon} size={24} className="shrink-0 text-accent" />)}
-      <span className={caption ? "truncate" : ""}>{text}</span>
+      <span className={caption ? "truncate" : ""}><Inline text={text} /></span>
     </h2>
   );
   const detail = sub != null && sub !== false && sub !== "" && (
-    typeof sub === "string" ? <span className={`type-sub ${layout === "end" ? "ml-auto shrink-0" : ""}`}>{sub}</span> : <span className={`flex items-center gap-2 ${layout === "end" ? "ml-auto shrink-0" : ""}`}>{sub}</span>
+    typeof sub === "string" ? <span className={`type-sub ${layout === "end" ? "ml-auto shrink-0" : ""}`}><Inline text={sub} /></span> : <span className={`flex items-center gap-2 ${layout === "end" ? "ml-auto shrink-0" : ""}`}>{sub}</span>
   );
   const row = layout === "end" ? "items-center gap-2" : `items-baseline gap-[0.75em] ${align === "right" ? "flex-row-reverse justify-start" : ""}`;
   return (
