@@ -169,7 +169,7 @@ layout and `application.lua` stay private while `bin/deploy` still ships them. T
 | Script | Does |
 |---|---|
 | `bin/setup` | installs dependencies and dev tools, creates `.env`, starts Redis |
-| `bin/dev` | runs everything with live reload |
+| `bin/dev` | runs everything with live reload (`-o` opens the browser once it's up) |
 | `bin/test` | Rust and frontend tests |
 | `bin/build` | release build (`--docker` for the image) |
 | `bin/run` | runs the release build locally |

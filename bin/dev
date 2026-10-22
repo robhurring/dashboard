@@ -4,8 +4,18 @@ cd "$(dirname "$0")/.."
 # Tools installed with `cargo install` live here; Homebrew's cargo does not put it on PATH.
 export PATH="$HOME/.cargo/bin:$PATH"
 
-usage() { echo "usage: bin/dev    run Redis, the Rust server (port 4000) and Vite (port 5173) with live reload and both logs"; }
-[[ "${1:-}" == "--help" || "${1:-}" == "-h" ]] && { usage; exit 0; }
+usage() {
+  echo "usage: bin/dev [-o|--open]    run Redis, the Rust server (port 4000) and Vite (port 5173) with live reload and both logs"
+  echo "  -o, --open    open the dashboard in a browser once it's up"
+}
+open_browser=false
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    -o|--open) open_browser=true ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
 
 # Redis: skip Docker when something already answers on the dev port (and so a wedged Docker Desktop
 # can't hang startup); otherwise start the compose service, giving up after a minute.
@@ -23,6 +33,20 @@ set -a; . ./.env; set +a
 # Procfile runners start commands through the login shell, whose init can reorder PATH and pick a
 # different node. Pin the one this shell resolves so the web process uses it too.
 export DASHBOARD_NODE_DIR="$(dirname "$(command -v node)")"
+
+# --open: wait (in the background, up to two minutes) for Vite to answer, then open it.
+if $open_browser; then
+  (
+    url="http://localhost:5173"
+    for _ in $(seq 1 120); do
+      if curl -s -o /dev/null "$url"; then
+        if command -v open >/dev/null; then open "$url"; elif command -v xdg-open >/dev/null; then xdg-open "$url" >/dev/null 2>&1; fi
+        exit 0
+      fi
+      sleep 1
+    done
+  ) &
+fi
 
 # Procfile.dev runs both processes with prefixed, interleaved logs. foreman/overmind read .env themselves.
 # `command -v` is not enough: rbenv shims exist even when the gem is missing from the active Ruby.
