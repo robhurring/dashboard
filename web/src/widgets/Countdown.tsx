@@ -121,23 +121,27 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   // The last few minutes: a timer over a bar that drains to "now".
   const timing = style === "countdown" && timer_at > 0 && until > 0 && until <= timer_at * MIN;
   if (inline && style === "countdown") {
-    const fraction = timing ? until / (timer_at * MIN) : null;
-    const big = timing ? timerText(until) : on ? "now" : status;
+    // Unanswered: the same row, but nothing counts down: its start time, and a bar that stays empty.
+    const fraction = pending ? 0 : timing ? until / (timer_at * MIN) : null;
+    const big = pending ? clock(start) : timing ? timerText(until) : on ? "now" : status;
+    const shade = pending ? undefined : tone;
     return (
-      <div data-style="countdown" data-inline data-over={over} className={`flex min-w-0 flex-col ${over ? "opacity-40" : ""}`}>
+      <div data-style="countdown" data-inline data-pending={pending} data-over={over} className={`flex min-w-0 flex-col ${pending ? "rounded-lg bg-accent/15 px-[0.8em] py-[0.6em]" : ""} ${over ? "opacity-40" : ""}`}>
         <div className="flex min-w-0 items-center gap-[0.8em]">
           <div className="flex min-w-0 flex-1 items-center gap-[0.5em]">
-            {icon && <Icon name={icon} className={`size-[1.4em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
+            {(pending || icon) && <Icon name={pending ? "bell-dot" : icon!} className={`size-[1.4em] shrink-0 ${shade ? TONE[shade] : "text-accent"}`} />}
             <span className="type-row truncate font-semibold"><Inline text={label} /></span>
           </div>
-          <div className={`type-value shrink-0 tabular-nums ${tone ? TONE[tone] : ""}`}>{big}</div>
+          <div className={`type-value shrink-0 tabular-nums ${pending ? "text-ink-muted" : shade ? TONE[shade] : ""}`}>{big}</div>
         </div>
         {fraction !== null && (
-          <div data-bar data-left={fraction.toFixed(3)} className="mt-[0.6em] h-[0.45em] w-full overflow-hidden rounded-full bg-ink/10">
-            <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${tone === "bad" ? "bg-bad" : tone === "warn" ? "bg-warn" : "bg-accent"}`} style={{ width: `${fraction * 100}%` }} />
+          <div data-bar data-left={fraction.toFixed(3)} data-disabled={pending} className="mt-[0.6em] h-[0.45em] w-full overflow-hidden rounded-full bg-ink/10">
+            {!pending && <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${shade === "bad" ? "bg-bad" : shade === "warn" ? "bg-warn" : "bg-accent"}`} style={{ width: `${fraction * 100}%` }} />}
           </div>
         )}
-        {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, when, sub].filter(Boolean).join(" · ")} /></div>}
+        {(pending || left || sub) && (
+          <div className="type-sub mt-[0.5em] truncate"><Inline text={[pending ? "not answered" : left, pending ? null : when, sub].filter(Boolean).join(" · ")} /></div>
+        )}
       </div>
     );
   }

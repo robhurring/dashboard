@@ -61,7 +61,7 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
   return (
     <div data-agenda data-layout="rows" className="flex h-full min-h-0 flex-col gap-[1.1em]">
       {/* The next event, one full-width row; what comes after stacks under it. */}
-      <Countdown inline at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.response === "pending" ? "bell-dot" : next.e.icon} sub={next.e.response === "pending" ? ["not answered", next.e.sub].filter(Boolean).join(" · ") : next.e.sub} tz={tz} seconds={seconds} />
+      <Countdown inline at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.icon} sub={next.e.sub} tz={tz} seconds={seconds} pending={next.e.response === "pending"} />
       {rest.length > 0 && (
         <section className="flex min-h-0 flex-col gap-[0.5em]">
           <h3 className="type-sub font-semibold uppercase tracking-wide">Later</h3>

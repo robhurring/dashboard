@@ -71,4 +71,14 @@ describe("ui.agenda", () => {
     expect(container.querySelector("[data-agenda]")).toHaveAttribute("data-layout", "rows");
     expect(screen.getByText("Standup").closest("[data-style]")).toHaveAttribute("data-inline", "true");
   });
+
+  test("an unanswered meeting at the top keeps the same layout but doesn't count down: start time and a disabled bar", () => {
+    draw({ events: [{ title: "Sync", at: t(3), response: "pending" }, { title: "1:1", at: t(30) }], tz: "America/New_York" });
+    const top = screen.getByText("Sync").closest("[data-style=countdown]")!;
+    expect(top).toHaveAttribute("data-pending", "true");
+    expect(top).not.toHaveTextContent(/in \d|\d:\d\d$/);
+    expect(top).toHaveTextContent("4:53 pm"); // its start time, NOW + 3m in New York
+    const bar = top.querySelector("[data-bar]")!;
+    expect(bar).toHaveAttribute("data-disabled", "true");
+  });
 });
