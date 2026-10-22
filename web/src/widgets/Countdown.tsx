@@ -29,6 +29,8 @@ type Props = {
   pending?: boolean;
   /** An event row that shows only the start time, for narrow columns. */
   compact?: boolean;
+  /** One row: the label on the left and the time on the right (the bar and details under them). */
+  inline?: boolean;
 };
 
 const MIN = 60_000;
@@ -86,7 +88,7 @@ export function useNow(): number {
  * Time until something: a meeting, a deploy, a train. Counts down on its own; says "now" (and what's
  * left, with an `end`) once it starts. Lua views use it as ui.countdown; stats tiles with `at` too.
  */
-export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, timer_at = 5, pending = false, compact = false }: Props) {
+export function Countdown({ at, end, label, sub, icon, style = "countdown", seconds = false, time = true, tz, warn_at = 10, bad_at = 2, timer_at = 5, pending = false, compact = false, inline = false }: Props) {
   const now = useNow();
   const start = instant(at);
   const finish = instant(end);
@@ -107,7 +109,7 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   if (style === "event") {
     return (
       <div data-style="event" data-over={over} data-pending={pending} className={`flex min-w-0 items-baseline gap-[0.9em] rounded-lg px-[0.8em] py-[0.55em] ${pending ? "bg-accent/15" : "bg-ink/5"} ${over ? "opacity-40" : ""}`}>
-        {when && <span className={`type-sub shrink-0 whitespace-nowrap tabular-nums ${compact ? "w-[4.6em]" : "w-[9.5em]"}`}>{when}</span>}
+        {when && <span className={`type-sub shrink-0 whitespace-nowrap tabular-nums ${compact ? "w-[4.6em]" : "w-[10.5em]"}`}>{when}</span>}
         <span className="type-label flex min-w-0 flex-1 items-center gap-[0.45em]">
           {pending && <span title="Not answered yet" className="flex shrink-0 self-center text-accent"><BellDot className="size-[1em]" aria-hidden /><span className="sr-only">unanswered</span></span>}
           <span className="truncate"><Inline text={label} /></span>
@@ -118,6 +120,27 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   }
   // The last few minutes: a timer over a bar that drains to "now".
   const timing = style === "countdown" && timer_at > 0 && until > 0 && until <= timer_at * MIN;
+  if (inline && style === "countdown") {
+    const fraction = timing ? until / (timer_at * MIN) : null;
+    const big = timing ? timerText(until) : on ? "now" : status;
+    return (
+      <div data-style="countdown" data-inline data-over={over} className={`flex min-w-0 flex-col ${over ? "opacity-40" : ""}`}>
+        <div className="flex min-w-0 items-center gap-[0.8em]">
+          <div className="flex min-w-0 flex-1 items-center gap-[0.5em]">
+            {icon && <Icon name={icon} className={`size-[1.4em] shrink-0 ${tone ? TONE[tone] : "text-accent"}`} />}
+            <span className="type-row truncate font-semibold"><Inline text={label} /></span>
+          </div>
+          <div className={`type-value shrink-0 tabular-nums ${tone ? TONE[tone] : ""}`}>{big}</div>
+        </div>
+        {fraction !== null && (
+          <div data-bar data-left={fraction.toFixed(3)} className="mt-[0.6em] h-[0.45em] w-full overflow-hidden rounded-full bg-ink/10">
+            <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${tone === "bad" ? "bg-bad" : tone === "warn" ? "bg-warn" : "bg-accent"}`} style={{ width: `${fraction * 100}%` }} />
+          </div>
+        )}
+        {(left || when || sub) && <div className="type-sub mt-[0.5em] truncate"><Inline text={[left, when, sub].filter(Boolean).join(" · ")} /></div>}
+      </div>
+    );
+  }
   if (timing) {
     const left = until / (timer_at * MIN);
     return (

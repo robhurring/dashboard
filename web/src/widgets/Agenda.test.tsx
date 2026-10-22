@@ -65,4 +65,10 @@ describe("ui.agenda", () => {
     expect(screen.getByText("Sync").closest("li")).toHaveAttribute("data-new", "true");
     expect(screen.getByText("1:1").closest("li")).toHaveAttribute("data-new", "false");
   });
+
+  test("rows, not columns: the next event is a full-width row, Later stacks under it", () => {
+    const { container } = draw({ events: [{ title: "Standup", at: t(10) }, { title: "Planning", at: t(90) }] });
+    expect(container.querySelector("[data-agenda]")).toHaveAttribute("data-layout", "rows");
+    expect(screen.getByText("Standup").closest("[data-style]")).toHaveAttribute("data-inline", "true");
+  });
 });

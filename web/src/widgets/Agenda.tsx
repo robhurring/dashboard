@@ -59,20 +59,18 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
   if (shown.length === 0) return <p className="type-sub italic">{empty}</p>;
   const [next, ...rest] = shown;
   return (
-    <div className="flex h-full min-h-0 flex-wrap items-start gap-x-[1.6em] gap-y-[1.2em]">
-      {/* The next event, and beside it (below it when the panel is narrow) what comes after. */}
-      <div className="min-w-[14em] flex-1">
-        <Countdown at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.response === "pending" ? "bell-dot" : next.e.icon} sub={next.e.response === "pending" ? ["not answered", next.e.sub].filter(Boolean).join(" · ") : next.e.sub} tz={tz} seconds={seconds} />
-      </div>
+    <div data-agenda data-layout="rows" className="flex h-full min-h-0 flex-col gap-[1.1em]">
+      {/* The next event, one full-width row; what comes after stacks under it. */}
+      <Countdown inline at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.response === "pending" ? "bell-dot" : next.e.icon} sub={next.e.response === "pending" ? ["not answered", next.e.sub].filter(Boolean).join(" · ") : next.e.sub} tz={tz} seconds={seconds} />
       {rest.length > 0 && (
-        <section className="flex min-h-0 min-w-[18em] flex-[1.3] flex-col gap-[0.55em]">
+        <section className="flex min-h-0 flex-col gap-[0.5em]">
           <h3 className="type-sub font-semibold uppercase tracking-wide">Later</h3>
-          <ul className="flex min-h-0 flex-col gap-[0.45em]">
+          <ul className="flex min-h-0 flex-col gap-[0.4em]">
             {rest.map(({ e }) => {
               const isNew = fresh.has(keyOf(e));
               return (
                 <li key={keyOf(e)} data-new={isNew} className={isNew ? "rounded-lg animate-[attention_0.6s_ease-in-out_4]" : ""}>
-                  <Countdown style="event" compact at={e.at} end={e.end} label={e.title} tz={tz} pending={e.response === "pending"} />
+                  <Countdown style="event" at={e.at} end={e.end} label={e.title} tz={tz} pending={e.response === "pending"} />
                 </li>
               );
             })}
