@@ -72,13 +72,19 @@ describe("ui.agenda", () => {
     expect(screen.getByText("Standup").closest("[data-style]")).toHaveAttribute("data-inline", "true");
   });
 
-  test("an unanswered meeting at the top keeps the same layout but doesn't count down: start time and a disabled bar", () => {
+  test("an unanswered meeting at the top keeps the same layout and relative time, but no timer: a disabled bar", () => {
     draw({ events: [{ title: "Sync", at: t(3), response: "pending" }, { title: "1:1", at: t(30) }], tz: "America/New_York" });
     const top = screen.getByText("Sync").closest("[data-style=countdown]")!;
     expect(top).toHaveAttribute("data-pending", "true");
-    expect(top).not.toHaveTextContent(/in \d|\d:\d\d$/);
-    expect(top).toHaveTextContent("4:53 pm"); // its start time, NOW + 3m in New York
+    expect(top).toHaveTextContent("in 3m"); // relative, even inside the last five minutes
+    expect(top).not.toHaveTextContent("2:59"); // never the timer
+    expect(top).toHaveTextContent("4:53 pm"); // its start time, in the details line
     const bar = top.querySelector("[data-bar]")!;
     expect(bar).toHaveAttribute("data-disabled", "true");
+  });
+
+  test("Later sits at the bottom of the panel", () => {
+    const { container } = draw({ events: [{ title: "Standup", at: t(10) }, { title: "Planning", at: t(90) }] });
+    expect(container.querySelector("[data-later]")).toHaveClass("mt-auto");
   });
 });

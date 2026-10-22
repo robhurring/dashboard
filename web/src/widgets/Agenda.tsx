@@ -63,7 +63,8 @@ export function Agenda({ events = [], count = 4, tz, seconds = false, empty = "N
       {/* The next event, one full-width row; what comes after stacks under it. */}
       <Countdown inline at={next.e.at} end={next.e.end} label={next.e.title} icon={next.e.icon} sub={next.e.sub} tz={tz} seconds={seconds} pending={next.e.response === "pending"} />
       {rest.length > 0 && (
-        <section className="flex min-h-0 flex-col gap-[0.5em]">
+        // Later sits at the bottom of the panel; the next meeting stays at the top.
+        <section data-later className="mt-auto flex min-h-0 flex-col gap-[0.5em]">
           <h3 className="type-sub font-semibold uppercase tracking-wide">Later</h3>
           <ul className="flex min-h-0 flex-col gap-[0.4em]">
             {rest.map(({ e }) => {

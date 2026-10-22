@@ -121,9 +121,10 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
   // The last few minutes: a timer over a bar that drains to "now".
   const timing = style === "countdown" && timer_at > 0 && until > 0 && until <= timer_at * MIN;
   if (inline && style === "countdown") {
-    // Unanswered: the same row, but nothing counts down: its start time, and a bar that stays empty.
+    // Unanswered: the same row with its relative time, but no timer: the bar stays empty.
     const fraction = pending ? 0 : timing ? until / (timer_at * MIN) : null;
-    const big = pending ? clock(start) : timing ? timerText(until) : on ? "now" : status;
+    // Unanswered: relative time ("in 30m"), never the timer.
+    const big = pending ? (until > 0 ? relativeText(until, { seconds }) : on ? "now" : status) : timing ? timerText(until) : on ? "now" : status;
     const shade = pending ? undefined : tone;
     return (
       <div data-style="countdown" data-inline data-pending={pending} data-over={over} className={`flex min-w-0 flex-col ${pending ? "rounded-lg bg-accent/15 px-[0.8em] py-[0.6em]" : ""} ${over ? "opacity-40" : ""}`}>
@@ -139,8 +140,8 @@ export function Countdown({ at, end, label, sub, icon, style = "countdown", seco
             {!pending && <div className={`h-full rounded-full transition-[width] duration-1000 ease-linear ${shade === "bad" ? "bg-bad" : shade === "warn" ? "bg-warn" : "bg-accent"}`} style={{ width: `${fraction * 100}%` }} />}
           </div>
         )}
-        {(pending || left || sub) && (
-          <div className="type-sub mt-[0.5em] truncate"><Inline text={[pending ? "not answered" : left, pending ? null : when, sub].filter(Boolean).join(" · ")} /></div>
+        {(pending || left || when || sub) && (
+          <div className="type-sub mt-[0.5em] truncate"><Inline text={[pending ? "not answered" : left, when, sub].filter(Boolean).join(" · ")} /></div>
         )}
       </div>
     );
