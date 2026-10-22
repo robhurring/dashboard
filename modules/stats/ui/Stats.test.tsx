@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import type { CustomProps } from "@dashboard/components/registry";
-import { Stats } from "./index";
+import { Stats, gridFor } from "./index";
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date(1_800_000_300 * 1000)); });
 afterEach(() => vi.useRealTimers());
 
-const props = (state: unknown): CustomProps => ({ state: state as never, config: {}, status: null, send: vi.fn(), title: "Stats", density: "normal" });
+const props = (state: unknown, config: Record<string, unknown> = {}): CustomProps => ({ state: state as never, config: config as never, status: null, send: vi.fn(), title: "Stats", density: "normal" });
 
 describe("Stats panel", () => {
   test("one tile per label, with the number, tone, icon and line; the push time is the panel header's", () => {
@@ -16,7 +16,7 @@ describe("Stats panel", () => {
     ] })} />);
     const tiles = screen.getAllByRole("listitem");
     expect(tiles).toHaveLength(2);
-    expect(within(tiles[0]).getByText("1").closest(".type-value")).toHaveClass("text-bad");
+    expect(within(tiles[0]).getByText("1").closest(".tabular-nums")).toHaveClass("text-bad");
     expect(within(tiles[0]).getByText("#incident")).toBeInTheDocument();
     expect(tiles[0].querySelector('[data-icon="bell"]')).not.toBeNull();
     expect(within(tiles[1]).getByText("12")).toBeInTheDocument();
@@ -65,5 +65,26 @@ describe("Stats panel", () => {
   test("before the first push it says it is waiting", () => {
     render(<Stats {...props(null)} />);
     expect(screen.getByText("Waiting for the first push")).toBeInTheDocument();
+  });
+
+  test("the grid fills the panel: columns and rows chosen from the count and the panel's shape", () => {
+    // The Work panel: half the screen wide, nearly full height.
+    expect(gridFor(6, 600, 640)).toEqual({ cols: 2, rows: 3 });
+    expect(gridFor(9, 600, 640)).toEqual({ cols: 3, rows: 3 });
+    expect(gridFor(4, 600, 640)).toEqual({ cols: 2, rows: 2 });
+    expect(gridFor(1, 600, 640)).toEqual({ cols: 1, rows: 1 });
+    expect(gridFor(5, 600, 640)).toEqual({ cols: 2, rows: 3 });
+    // A wide, short panel lays the same six out in rows.
+    expect(gridFor(6, 1200, 400)).toEqual({ cols: 3, rows: 2 });
+    expect(gridFor(0, 600, 640)).toEqual({ cols: 1, rows: 1 });
+  });
+
+  test("layout: fill (the default) stretches a grid over the panel; flow keeps fixed tiles that wrap", () => {
+    const items = [{ label: "A", number: 1 }, { label: "B", number: 2 }];
+    const { container, unmount } = render(<Stats {...props({ pushed_at: 1_800_000_000, items })} />);
+    expect(container.querySelector("ul")).toHaveAttribute("data-layout", "fill");
+    unmount();
+    const flow = render(<Stats {...props({ pushed_at: 1_800_000_000, items }, { layout: "flow" })} />);
+    expect(flow.container.querySelector("ul")).toHaveAttribute("data-layout", "flow");
   });
 });

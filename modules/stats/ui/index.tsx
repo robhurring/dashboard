@@ -45,38 +45,83 @@ const EMPTY: Item[] = [];
 const TONE: Record<string, string> = { accent: "text-accent", good: "text-good", warn: "text-warn", bad: "text-bad" };
 
 /** One tile per pushed stat: icon, the number large, the label and an optional line. The panel header says when it was pushed. */
-export function Stats({ state }: CustomProps) {
+/** The tile shape the grid aims for: a little wider than tall. */
+const TILE_ASPECT = 1.25;
+
+/**
+ * Columns and rows that fill a `width` × `height` panel with `count` tiles: the layout whose tiles come
+ * closest to TILE_ASPECT, with a penalty per empty cell. 6 in a tall half-screen panel is 2 × 3.
+ */
+export function gridFor(count: number, width: number, height: number): { cols: number; rows: number } {
+  if (count <= 1 || width <= 0 || height <= 0) return { cols: 1, rows: 1 };
+  let best = { cols: 1, rows: count, score: Infinity };
+  for (let cols = 1; cols <= count; cols++) {
+    const rows = Math.ceil(count / cols);
+    const empty = cols * rows - count;
+    if (empty >= cols) continue; // a whole empty row: fewer rows would do
+    const score = Math.abs(Math.log(width / cols / (height / rows) / TILE_ASPECT)) + empty * 0.3;
+    if (score < best.score) best = { cols, rows, score };
+  }
+  return { cols: best.cols, rows: best.rows };
+}
+
+/** The element's size, kept current. */
+function useSize<T extends HTMLElement>(): [React.RefObject<T | null>, { width: number; height: number }] {
+  const ref = useRef<T>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => { const r = el.getBoundingClientRect(); setSize({ width: r.width, height: r.height }); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, size];
+}
+
+/**
+ * One tile per pushed stat, filling the panel: the grid's columns and rows follow the count and the
+ * panel's shape, and each number grows with its tile. The panel header says when it was pushed.
+ */
+export function Stats({ state, config }: CustomProps) {
   const s = state as State | null;
   const motions = useMotion(s?.items ?? EMPTY);
+  const [ref, size] = useSize<HTMLUListElement>();
   if (!s) return <p className="type-sub italic">Waiting for the first push</p>;
+  if (s.items.length === 0) return <p className="type-sub italic">Nothing to report</p>;
+  // fill: a grid sized to the count and the panel, no dead space. flow: fixed tiles that wrap (and scroll).
+  const fill = config?.layout !== "flow";
+  const { cols, rows } = gridFor(s.items.length, size.width, size.height);
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {s.items.length === 0 ? (
-        <p className="type-sub italic">Nothing to report</p>
-      ) : (
-        <ul className="grid min-h-0 flex-1 auto-rows-min grid-cols-[repeat(auto-fill,minmax(7em,1fr))] gap-[0.75em] scroll">
-          {s.items.map((it) => {
-            const m = motions[idOf(it)];
-            const motion: Motion = m?.motion ?? "none";
-            return (
-            <li key={idOf(it)} data-motion={motion} className={`min-w-0 rounded-lg bg-ink/5 px-[0.75em] py-[0.6em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
-              <div className="flex items-center gap-[0.4em] text-ink-muted">
-                {it.icon && (
-                  <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
-                    <Icon name={it.icon} className={`size-[1.1em] shrink-0 ${it.tone ? TONE[it.tone] : "text-accent"}`} />
-                  </span>
-                )}
-                <span className="type-sub truncate">{it.label}</span>
-              </div>
-              <div className={`type-value mt-[0.2em] ${it.tone ? TONE[it.tone] : ""}`}>
-                <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
-              </div>
-              {it.sub && <div className="type-sub mt-[0.15em] truncate">{it.sub}</div>}
-            </li>
-            );
-          })}
-        </ul>
-      )}
-    </div>
+    <ul
+      ref={ref}
+      data-layout={fill ? "fill" : "flow"}
+      data-cols={fill ? cols : undefined}
+      data-rows={fill ? rows : undefined}
+      className={fill ? "grid h-full min-h-0 gap-[0.75em]" : "grid h-full min-h-0 auto-rows-min grid-cols-[repeat(auto-fill,minmax(8em,1fr))] gap-[0.75em] scroll"}
+      style={fill ? { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : undefined}
+    >
+      {s.items.map((it) => {
+        const m = motions[idOf(it)];
+        const motion: Motion = m?.motion ?? "none";
+        return (
+          <li key={idOf(it)} data-motion={motion} className={`${fill ? "stats-tile" : "min-h-[6.5em]"} flex min-h-0 min-w-0 flex-col rounded-xl bg-ink/5 px-[0.9em] py-[0.75em] ${motion === "ring" ? "stats-ring-tile" : ""}`}>
+            <div className="flex items-center gap-[0.45em] text-ink-muted">
+              {it.icon && (
+                <span key={motion === "ring" ? m!.key : "still"} className={`inline-flex ${motion === "ring" ? "stats-ring-icon" : ""}`}>
+                  <Icon name={it.icon} className={`size-[1.15em] shrink-0 ${it.tone ? TONE[it.tone] : "text-accent"}`} />
+                </span>
+              )}
+              <span className="type-label truncate">{it.label}</span>
+            </div>
+            {/* The number sits low in the tile and grows with it (container units, see stats.css). */}
+            <div className={`${fill ? "stats-number" : "text-[2.25em]"} mt-auto font-semibold leading-none tracking-tight tabular-nums ${it.tone ? TONE[it.tone] : ""}`}>
+              <span key={motion === "none" ? "still" : m!.key} className={motion === "none" ? "" : "stats-pop"}>{it.number}</span>
+            </div>
+            {it.sub && <div className="type-sub mt-[0.3em] truncate">{it.sub}</div>}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

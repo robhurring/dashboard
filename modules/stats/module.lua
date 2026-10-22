@@ -27,6 +27,9 @@ return {
   name = "stats",
   icon = "layout-grid",
   title = "Stats",
+  config = {
+    layout = "fill",   -- "fill": tiles stretch to cover the panel, sized by the count; "flow": fixed tiles that wrap
+  },
 
   hooks = {
     push = {
