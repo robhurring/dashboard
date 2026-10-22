@@ -87,4 +87,21 @@ describe("ui.agenda", () => {
     const { container } = draw({ events: [{ title: "Standup", at: t(10) }, { title: "Planning", at: t(90) }] });
     expect(container.querySelector("[data-later]")).toHaveClass("mt-auto");
   });
+
+  test("back to back: inside the next meeting's last 5 minutes, it takes the top line with its timer", () => {
+    draw({ events: [
+      { title: "Design review", at: t(-55), end: t(3) },
+      { title: "1:1", at: t(3), end: t(30) },
+      { title: "Planning", at: t(60) },
+    ] });
+    const top = screen.getByText("1:1").closest("[data-style=countdown]")!;
+    expect(top.querySelector("[data-bar]")).not.toBeNull();
+    // The meeting you're in moves into the rows, still saying what's left of it.
+    expect(screen.getByText("Design review").closest("[data-style=event]")).toHaveTextContent("now · 3m left");
+  });
+
+  test("back to back with an unanswered invite next: the meeting you're in keeps the top line", () => {
+    draw({ events: [{ title: "Design review", at: t(-55), end: t(3) }, { title: "Sync", at: t(3), response: "pending" }] });
+    expect(screen.getByText("Design review").closest("[data-style]")).toHaveAttribute("data-style", "countdown");
+  });
 });
